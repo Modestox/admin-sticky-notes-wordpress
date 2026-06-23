@@ -1,0 +1,31 @@
+{
+  "name": "modestox/modestox-admin-sticky-notes",
+  "description": "Internal board with state-version notifications for WordPress admin panel",
+  "type": "wordpress-plugin",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Sergey Kuzmitsky",
+      "email": "ubuntu.ksm@gmail.com",
+      "homepage": "https://github.com/modestox"
+    }
+  ],
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require": {
+    "php": ">=8.3",
+    "composer/installers": "^2.0",
+    "modestox/config-processor": "^1.0.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "Modestox\\AdminStickyNotes\\": "src/",
+      "Modestox\\ConfigProcessorWp\\": "../modestox-config-processor-wp/src/"
+    }
+  },
+  "config": {
+    "allow-plugins": {
+      "composer/installers": true
+    }
+  }
+}

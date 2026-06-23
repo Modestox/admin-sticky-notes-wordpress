@@ -1,0 +1,20 @@
+/vendor/
+
+/project_snapshot.txt
+/compile-project.php
+
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
+test-run.php
+
+*.log
+
+
+
+*Внимательно посмотри на вывод. В
+ списке «Untracked files» должны быть только:
+`config/`, `languages/`, `src/`, `composer.json`, `composer.lock`, `modestox-admin-sticky-notes.php`, `test-run.php` и `uninstall.php`. Папки `vendor` и файла `project_snapshot.txt` там быть НЕ ДОЛЖНО.*
+
+---
