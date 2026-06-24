@@ -3,13 +3,13 @@
  * Modestox Admin Sticky Notes - Uninstall Script
  *
  * @copyright Copyright (c) 2026 Sergey Kuzmitsky
- * @license   AGPL-3.0-or-later
- * @link      https://github.com/Modestox/modestox
+ * @license   MIT
+ * @link      https://github.com/Modestox/admin-sticky-notes-wordpress
  */
 
 declare(strict_types=1);
 
-use Modestox\AdminStickyNotes\Infrastructure\Database\Installer; // 🔥 Target updated namespace
+use Modestox\AdminStickyNotes\Infrastructure\Database\Installer;
 
 if (!defined('WP_UNINSTALL_PLUGIN')) {
     exit;

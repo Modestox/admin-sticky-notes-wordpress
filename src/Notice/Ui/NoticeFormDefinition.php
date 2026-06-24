@@ -1,11 +1,11 @@
 <?php
 
 /**
- * Modestox CMS - E-commerce Platform
+ * Modestox Admin Sticky Notes
  *
  * @copyright Copyright (c) 2026 Sergey Kuzmitsky
- * @license   AGPL-3.0-or-later
- * @link      https://github.com/Modestox/modestox
+ * @license   MIT
+ * @link      https://github.com/Modestox/admin-sticky-notes-wordpress
  */
 
 declare(strict_types=1);
@@ -40,19 +40,22 @@ final readonly class NoticeFormDefinition
             Field::text('title', __('Notice Title', 'modestox-admin-sticky-notes'), true),
             Field::textarea('message', __('Notice Content / Message', 'modestox-admin-sticky-notes'), true),
             Field::multiselect('groupId', __('Target Groups', 'modestox-admin-sticky-notes'), $groupOptions, true),
+
             Field::select('priority', __('Urgency Priority', 'modestox-admin-sticky-notes'), [
                 new FieldOption('low', __('Low Importance', 'modestox-admin-sticky-notes')),
                 new FieldOption('normal', __('Regular Normal', 'modestox-admin-sticky-notes')),
                 new FieldOption('high', __('High Priority', 'modestox-admin-sticky-notes')),
                 new FieldOption('critical', __('Critical / Immediate Action', 'modestox-admin-sticky-notes')),
             ], true),
+
             Field::select('status', __('Lifecycle Status', 'modestox-admin-sticky-notes'), [
                 new FieldOption('draft', __('Draft (Hidden)', 'modestox-admin-sticky-notes')),
                 new FieldOption('publish', __('Published (Active)', 'modestox-admin-sticky-notes')),
                 new FieldOption('archived', __('Archived', 'modestox-admin-sticky-notes')),
             ], true),
-            Field::datetime('startDate', __('Execution Start Date', 'modestox-admin-sticky-notes'), false),
-            Field::datetime('endDate', __('Execution End Date', 'modestox-admin-sticky-notes'), false),
+
+            Field::datetime('startDate', __('Execution Start Date', 'modestox-admin-sticky-notes'), true),
+            Field::datetime('endDate', __('Execution End Date', 'modestox-admin-sticky-notes'), true),
         ];
     }
 }

@@ -3,8 +3,8 @@
  * Modestox Admin Sticky Notes
  *
  * @copyright Copyright (c) 2026 Sergey Kuzmitsky
- * @license   AGPL-3.0-or-later
- * @link      https://github.com/Modestox/modestox
+ * @license   MIT
+ * @link      https://github.com/Modestox/admin-sticky-notes-wordpress
  */
 
 /**
@@ -12,7 +12,7 @@
  * Description: Internal board with state-version notifications and sticky notes for WordPress admin panel.
  * Version:     1.0.0
  * Author:      Sergey Kuzmitsky
- * License:     AGPL-3.0-or-later
+ * License:     MIT
  * Requires PHP: 8.3
  * Requires Plugins: modestox-config-processor-wp
  * Text Domain:  modestox-admin-sticky-notes

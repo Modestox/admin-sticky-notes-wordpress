@@ -1,10 +1,10 @@
 <?php
 /**
- * Modestox CMS - E-commerce Platform
+ * Modestox Admin Sticky Notes
  *
  * @copyright Copyright (c) 2026 Sergey Kuzmitsky
- * @license   AGPL-3.0-or-later
- * @link      https://github.com/Modestox/modestox
+ * @license   MIT
+ * @link      https://github.com/Modestox/admin-sticky-notes-wordpress
  */
 
 declare(strict_types=1);
@@ -17,7 +17,7 @@ return [
         'menu_slug'  => 'modestox-admin-sticky-notes',
         'icon_url'   => 'dashicons-admin-post',
         'position'   => 30,
-        'controller' => \Modestox\AdminStickyNotes\Notice\Ui\NoticeController::class, // 🔥 Target updated namespace
+        'controller' => \Modestox\AdminStickyNotes\Notice\Ui\NoticeController::class,
     ],
     'submenus' => [
         [
@@ -26,7 +26,7 @@ return [
             'capability' => 'manage_options',
             'menu_slug'  => 'modestox-admin-sticky-notes',
             'action'     => 'list',
-            'controller' => \Modestox\AdminStickyNotes\Notice\Ui\NoticeController::class, // 🔥 Target updated namespace
+            'controller' => \Modestox\AdminStickyNotes\Notice\Ui\NoticeController::class,
         ],
         [
             'page_title' => __('Create New Administrative Notice', 'modestox-admin-sticky-notes'),
@@ -34,7 +34,7 @@ return [
             'capability' => 'manage_options',
             'menu_slug'  => 'modestox-notices-new',
             'action'     => 'new',
-            'controller' => \Modestox\AdminStickyNotes\Notice\Ui\NoticeController::class, // 🔥 Target updated namespace
+            'controller' => \Modestox\AdminStickyNotes\Notice\Ui\NoticeController::class,
         ],
     ],
 ];

@@ -1,11 +1,11 @@
 <?php
 
 /**
- * Modestox CMS - E-commerce Platform
+ * Modestox Admin Sticky Notes
  *
  * @copyright Copyright (c) 2026 Sergey Kuzmitsky
- * @license   AGPL-3.0-or-later
- * @link      https://github.com/Modestox/modestox
+ * @license   MIT
+ * @link      https://github.com/Modestox/admin-sticky-notes-wordpress
  */
 
 declare(strict_types=1);
@@ -14,7 +14,8 @@ namespace Modestox\AdminStickyNotes\Notice\Ui;
 
 use Modestox\AdminStickyNotes\Shared\Crud\AbstractCrudController;
 use Modestox\AdminStickyNotes\Notice\Repository\NoticeRepository;
-use Modestox\AdminStickyNotes\Group\Repository\GroupRepository; // 🔥 FIXED: Using updated domain repository path
+use Modestox\AdminStickyNotes\Group\Repository\GroupRepository;
+
 use Modestox\AdminStickyNotes\Notice\Domain\Notice;
 use Modestox\AdminStickyNotes\Shared\Ui\GridRenderer;
 use Modestox\AdminStickyNotes\Shared\Ui\FormRenderer;
@@ -38,7 +39,31 @@ final class NoticeController extends AbstractCrudController
     protected function renderGridAction(): void
     {
         $gridDefinition = new NoticeGridDefinition();
-        $notices = $this->repository->findAll();
+
+        $orderBy = isset($_GET['orderby']) ? sanitize_key($_GET['orderby']) : 'id';
+        $direction = isset($_GET['order']) && strtoupper($_GET['order']) === 'ASC' ? 'ASC' : 'DESC';
+
+        $dbOrderBy = match ($orderBy) {
+            'title'     => 'title',
+            'status'    => 'status',
+            'priority'  => 'priority',
+            'startDate' => 'start_date',
+            'endDate'   => 'end_date',
+            default     => 'id',
+        };
+
+        $configKey = 'modestox_adminstickynotes_general_grid_page_limit';
+        $perPage = (int)get_option($configKey, 10);
+
+        if ($perPage <= 0) {
+            $perPage = 10;
+        }
+
+        $currentPage = isset($_GET['paged']) ? max(1, (int)$_GET['paged']) : 1;
+        $offset = ($currentPage - 1) * $perPage;
+
+        $totalItems = $this->repository->countAll();
+        $notices = $this->repository->findAll($dbOrderBy, $direction, $perPage, $offset);
         $groupsLookup = $this->groupRepository->getLookupPairs();
 
         $gridData = array_map(static function (Notice $notice) use ($groupsLookup) {
@@ -57,7 +82,7 @@ final class NoticeController extends AbstractCrudController
             $editUrl = admin_url(sprintf('admin.php?page=%s&action=edit&id=%d', sanitize_key($_GET['page'] ?? ''), $notice->id));
             $deleteUrl = wp_nonce_url(
                 admin_url(sprintf('admin.php?page=%s&action=delete&id=%d', sanitize_key($_GET['page'] ?? ''), $notice->id)),
-                'delete_notice_' . $notice->id
+                'delete_notice_' . $notice->id,
             );
 
             $actionsHtml = sprintf(
@@ -66,7 +91,7 @@ final class NoticeController extends AbstractCrudController
                 esc_html__('Edit', 'modestox-admin-sticky-notes'),
                 esc_url($deleteUrl),
                 esc_attr__('Are you sure you want to delete this notice?', 'modestox-admin-sticky-notes'),
-                esc_html__('Delete', 'modestox-admin-sticky-notes')
+                esc_html__('Delete', 'modestox-admin-sticky-notes'),
             );
 
             return [
@@ -81,7 +106,7 @@ final class NoticeController extends AbstractCrudController
             ];
         }, $notices);
 
-        $renderer = new GridRenderer($gridDefinition->getColumns(), $gridData);
+        $renderer = new GridRenderer($gridDefinition->getColumns(), $gridData, $totalItems, $perPage);
         $renderer->prepare_items();
 
         echo '<div class="wrap">';
@@ -92,6 +117,7 @@ final class NoticeController extends AbstractCrudController
             esc_html__('Add New', 'modestox-admin-sticky-notes'),
         );
         echo '<hr class="wp-header-end">';
+
         $renderer->display();
         echo '</div>';
     }
@@ -111,8 +137,11 @@ final class NoticeController extends AbstractCrudController
             $notice = $this->repository->findById($id);
             if ($notice) {
                 $savedGroups = maybe_unserialize($notice->groupId);
+
                 if (!is_array($savedGroups)) {
-                    $savedGroups = [0];
+                    $savedGroups = ['0'];
+                } else {
+                    $savedGroups = array_map('strval', $savedGroups);
                 }
 
                 $formData = [
@@ -163,7 +192,7 @@ final class NoticeController extends AbstractCrudController
         }
 
         $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
-        $timezone = new \DateTimeZone('Europe/Berlin');
+        $timezone = wp_timezone();
         $now = new \DateTimeImmutable('now', $timezone);
 
         $startDateRaw = sanitize_text_field($_POST['startDate'] ?? '');

@@ -1,11 +1,11 @@
 <?php
 
 /**
- * Modestox CMS - E-commerce Platform
+ * Modestox Admin Sticky Notes
  *
  * @copyright Copyright (c) 2026 Sergey Kuzmitsky
- * @license   AGPL-3.0-or-later
- * @link      https://github.com/Modestox/modestox
+ * @license   MIT
+ * @link      https://github.com/Modestox/admin-sticky-notes-wordpress
  */
 
 declare(strict_types=1);
@@ -15,7 +15,7 @@ namespace Modestox\AdminStickyNotes\Notice\Repository;
 use Modestox\AdminStickyNotes\Notice\Domain\Notice;
 
 /**
- * Handles persistent abstraction layer boundaries for Notice domain entities.
+ * Handles persistent database operations for Administrative Notices.
  */
 final readonly class NoticeRepository
 {
@@ -28,10 +28,57 @@ final readonly class NoticeRepository
     }
 
     /**
-     * Resolves a unique identity record into a concrete domain entity instance.
+     * Fetches all notices with strict sorting and pagination boundaries.
      *
-     * @param int $id
-     * @return Notice|null
+     * @param string $orderBy Validated database column name.
+     * @param string $direction Sort order direction (ASC|DESC).
+     * @param int $limit Maximum number of records to return.
+     * @param int $offset Number of records to skip.
+     * @return array<int, Notice>
+     */
+    public function findAll(string $orderBy = 'id', string $direction = 'DESC', int $limit = 20, int $offset = 0): array
+    {
+        global $wpdb;
+
+        // Strict whitelist filtering to prevent SQL injection vulnerabilities
+        $allowedColumns = ['id', 'title', 'status', 'priority', 'start_date', 'end_date'];
+        if (!in_array($orderBy, $allowedColumns, true)) {
+            $orderBy = 'id';
+        }
+
+        $direction = strtoupper($direction) === 'ASC' ? 'ASC' : 'DESC';
+
+        $sql = sprintf(
+            "SELECT * FROM %s ORDER BY %s %s LIMIT %d OFFSET %d",
+            $this->tableName,
+            $orderBy,
+            $direction,
+            $limit,
+            $offset
+        );
+
+        $rows = $wpdb->get_results($sql, ARRAY_A);
+
+        if (!is_array($rows)) {
+            return [];
+        }
+
+        return array_map([$this, 'hydrate'], $rows);
+    }
+
+    /**
+     * Returns the total count of rows inside the database table.
+     *
+     * @return int
+     */
+    public function countAll(): int
+    {
+        global $wpdb;
+        return (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->tableName}");
+    }
+
+    /**
+     * Fetches a single notice entry by its primary key identifier.
      */
     public function findById(int $id): ?Notice
     {
@@ -42,7 +89,7 @@ final readonly class NoticeRepository
             ARRAY_A
         );
 
-        if (!is_array($row)) {
+        if (!$row) {
             return null;
         }
 
@@ -50,60 +97,9 @@ final readonly class NoticeRepository
     }
 
     /**
-     * Fetches a paginated and sorted slice of the database registry state.
-     *
-     * @param string $orderBy
-     * @param string $direction
-     * @param int $limit
-     * @param int $offset
-     * @return array<int, Notice>
+     * Persists or updates a notice entity inside database engine storage.
      */
-    public function findAll(string $orderBy = 'id', string $direction = 'DESC', int $limit = 20, int $offset = 0): array
-    {
-        global $wpdb;
-
-        $direction = strtoupper($direction) === 'ASC' ? 'ASC' : 'DESC';
-
-        $allowedColumns = [
-            'id', 'group_id', 'user_id', 'target_user_id',
-            'title', 'content', 'status', 'priority',
-            'start_date', 'end_date', 'created_at', 'updated_at'
-        ];
-
-        if (!in_array($orderBy, $allowedColumns, true)) {
-            $orderBy = 'id';
-        }
-
-        $query = sprintf(
-            "SELECT * FROM %s ORDER BY %s %s LIMIT %d OFFSET %d",
-            $this->tableName,
-            $orderBy,
-            $direction,
-            $limit,
-            $offset
-        );
-
-        $rows = $wpdb->get_results($query, ARRAY_A);
-
-        if (!is_array($rows)) {
-            return [];
-        }
-
-        $collection = [];
-        foreach ($rows as $row) {
-            $collection[] = $this->hydrate($row);
-        }
-
-        return $collection;
-    }
-
-    /**
-     * Persists or updates the domain model registry state boundaries.
-     *
-     * @param Notice $notice
-     * @return bool
-     */
-    public function save(Notice $notice): bool
+    public function save(Notice $notice): void
     {
         global $wpdb;
 
@@ -122,37 +118,27 @@ final readonly class NoticeRepository
 
         if ($notice->id === null) {
             $data['created_at'] = $notice->createdAt->format('Y-m-d H:i:s');
-            $result = $wpdb->insert($this->tableName, $data);
-            return $result !== false;
+            $wpdb->insert($this->tableName, $data);
+        } else {
+            $wpdb->update($this->tableName, $data, ['id' => $notice->id]);
         }
-
-        $result = $wpdb->update($this->tableName, $data, ['id' => $notice->id]);
-        return $result !== false;
     }
 
     /**
-     * Evicts a target identity completely out of persistent database registries.
-     *
-     * @param int $id
-     * @return bool
+     * Deletes a single notice entity completely from storage.
      */
-    public function delete(int $id): bool
+    public function delete(int $id): void
     {
         global $wpdb;
-        $result = $wpdb->delete($this->tableName, ['id' => $id]);
-        return $result !== false;
+        $wpdb->delete($this->tableName, ['id' => $id]);
     }
 
     /**
-     * Hydrates a single raw database row context map into a strict Notice DTO object.
-     *
-     * @param array<string, mixed> $data
-     * @return Notice
+     * Maps raw database array layout metadata structures to clean Domain DTO instances.
      */
-    public function hydrate(array $data): Notice
+    private function hydrate(array $data): Notice
     {
-        $startDateRaw = $data['start_date'] ?? null;
-        $endDateRaw   = $data['end_date'] ?? null;
+        $timezone = wp_timezone();
 
         return new Notice(
             id: isset($data['id']) ? (int)$data['id'] : null,
@@ -163,10 +149,10 @@ final readonly class NoticeRepository
             message: (string)($data['content'] ?? ''),
             status: (string)($data['status'] ?? 'draft'),
             priority: (string)($data['priority'] ?? 'normal'),
-            startDate: $startDateRaw ? new \DateTimeImmutable((string)$startDateRaw) : null,
-            endDate: $endDateRaw ? new \DateTimeImmutable((string)$endDateRaw) : null,
-            createdAt: new \DateTimeImmutable((string)($data['created_at'] ?? 'now')),
-            updatedAt: new \DateTimeImmutable((string)($data['updated_at'] ?? 'now'))
+            startDate: !empty($data['start_date']) ? new \DateTimeImmutable($data['start_date'], $timezone) : null,
+            endDate: !empty($data['end_date']) ? new \DateTimeImmutable($data['end_date'], $timezone) : null,
+            createdAt: new \DateTimeImmutable($data['created_at'] ?? 'now', $timezone),
+            updatedAt: new \DateTimeImmutable($data['updated_at'] ?? 'now', $timezone),
         );
     }
 }
