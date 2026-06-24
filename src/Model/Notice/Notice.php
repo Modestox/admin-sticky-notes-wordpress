@@ -1,25 +1,49 @@
 <?php
 
+/**
+ * Modestox CMS - E-commerce Platform
+ *
+ * @copyright Copyright (c) 2026 Sergey Kuzmitsky
+ * @license   AGPL-3.0-or-later
+ * @link      https://github.com/Modestox/modestox
+ */
+
 declare(strict_types=1);
 
 namespace Modestox\AdminStickyNotes\Model\Notice;
 
 /**
- * Domain entity model representing a centralized administration notice record.
+ * Data Transfer Object representing a single sticky note entity aligned with the schema layout.
  */
 final readonly class Notice
 {
     /**
-     * @param array<int, string> $allowedRoles
+     * Dependency Injection via Constructor Property Promotion (PHP 8.3 standard).
+     *
+     * @param int|null $id
+     * @param int $groupId
+     * @param int $userId
+     * @param int $targetUserId
+     * @param string $title
+     * @param string $message
+     * @param string $status
+     * @param string $priority
+     * @param \DateTimeImmutable|null $startDate
+     * @param \DateTimeImmutable|null $endDate
+     * @param \DateTimeImmutable $createdAt
+     * @param \DateTimeImmutable $updatedAt
      */
     public function __construct(
         public ?int $id,
+        public string $groupId,
+        public int $userId,
+        public int $targetUserId,
         public string $title,
         public string $message,
         public string $status,
         public string $priority,
-        public int $authorId,
-        public array $allowedRoles,
+        public ?\DateTimeImmutable $startDate,
+        public ?\DateTimeImmutable $endDate,
         public \DateTimeImmutable $createdAt,
         public \DateTimeImmutable $updatedAt,
     ) {}

@@ -14,6 +14,7 @@ namespace Modestox\AdminStickyNotes\Controller\Admin;
 
 use Modestox\AdminStickyNotes\Service\Admin\Ui\AbstractCrudController;
 use Modestox\AdminStickyNotes\Repository\Notice\NoticeRepository;
+use Modestox\AdminStickyNotes\Repository\Group\GroupRepository;
 use Modestox\AdminStickyNotes\Model\Notice\Notice;
 use Modestox\AdminStickyNotes\Model\Notice\Ui\NoticeGridDefinition;
 use Modestox\AdminStickyNotes\Model\Notice\Ui\NoticeFormDefinition;
@@ -30,7 +31,8 @@ final class NoticeController extends AbstractCrudController
      * The DI container automatically resolves and injects the NoticeRepository instance.
      */
     public function __construct(
-        private NoticeRepository $repository
+        private NoticeRepository $repository,
+        private GroupRepository $groupRepository,
     ) {}
 
     /**
@@ -40,14 +42,46 @@ final class NoticeController extends AbstractCrudController
     {
         $gridDefinition = new NoticeGridDefinition();
         $notices = $this->repository->findAll();
+        $groupsLookup = $this->groupRepository->getLookupPairs();
 
-        $gridData = array_map(static function (Notice $notice) {
+        $gridData = array_map(static function (Notice $notice) use ($groupsLookup) {
+            $assignedGroups = maybe_unserialize($notice->groupId);
+
+            if (!is_array($assignedGroups) || in_array(0, $assignedGroups, true) || empty($assignedGroups)) {
+                $groupName = sprintf('<strong>%s</strong>', esc_html__('All Groups', 'modestox-admin-sticky-notes'));
+            } else {
+                $names = [];
+                foreach ($assignedGroups as $gId) {
+                    $names[] = $groupsLookup[(int)$gId] ?? sprintf('#%d', $gId);
+                }
+                $groupName = implode(', ', $names);
+            }
+
+            // Compile clean standalone action endpoints for external actions column layout bounds
+            $editUrl = admin_url(sprintf('admin.php?page=%s&action=edit&id=%d', sanitize_key($_GET['page'] ?? ''), $notice->id));
+            $deleteUrl = wp_nonce_url(
+                admin_url(sprintf('admin.php?page=%s&action=delete&id=%d', sanitize_key($_GET['page'] ?? ''), $notice->id)),
+                'delete_notice_' . $notice->id
+            );
+
+            $actionsHtml = sprintf(
+                '<a href="%s" class="edit">%s</a> | <a href="%s" class="submitdelete" style="color: #b32d2e;" onclick="return confirm(\'%s\');">%s</a>',
+                esc_url($editUrl),
+                esc_html__('Edit', 'modestox-admin-sticky-notes'),
+                esc_url($deleteUrl),
+                esc_attr__('Are you sure you want to delete this notice?', 'modestox-admin-sticky-notes'),
+                esc_html__('Delete', 'modestox-admin-sticky-notes')
+            );
+
             return [
                 'id'        => $notice->id,
-                'title'     => $notice->message,
-                'priority'  => $notice->priority,
+                'title'     => $notice->title,
+                'groupName' => $groupName,
                 'status'    => $notice->status,
-                'createdAt' => $notice->createdAt,
+                'priority'  => $notice->priority,
+                'startDate' => $notice->startDate,
+                'endDate'   => $notice->endDate,
+                'actions'   => $actionsHtml,
             ];
         }, $notices);
 
@@ -80,11 +114,19 @@ final class NoticeController extends AbstractCrudController
         if ($id !== null) {
             $notice = $this->repository->findById($id);
             if ($notice) {
+                $savedGroups = maybe_unserialize($notice->groupId);
+                if (!is_array($savedGroups)) {
+                    $savedGroups = [0];
+                }
+
                 $formData = [
-                    'title'    => $notice->title,
-                    'message'  => $notice->message,
-                    'priority' => $notice->priority,
-                    'status'   => $notice->status,
+                    'title'     => $notice->title,
+                    'message'   => $notice->message,
+                    'groupId'   => $savedGroups,
+                    'priority'  => $notice->priority,
+                    'status'    => $notice->status,
+                    'startDate' => $notice->startDate?->format('Y-m-d\TH:i') ?? '',
+                    'endDate'   => $notice->endDate?->format('Y-m-d\TH:i') ?? '',
                 ];
             }
         }
@@ -97,6 +139,8 @@ final class NoticeController extends AbstractCrudController
             ),
         );
 
+        $availableGroups = $this->groupRepository->getLookupPairs();
+
         echo '<div class="wrap">';
         echo sprintf(
             '<h1>%s</h1>',
@@ -106,7 +150,7 @@ final class NoticeController extends AbstractCrudController
 
         wp_nonce_field('save_notice_action', 'modestox_nonce');
 
-        $renderer->render($formDefinition->getFields(), $formData);
+        $renderer->render($formDefinition->getFields($availableGroups), $formData);
 
         submit_button($id ? __('Update', 'modestox-admin-sticky-notes') : __('Save', 'modestox-admin-sticky-notes'));
         echo '</form>';
@@ -123,17 +167,59 @@ final class NoticeController extends AbstractCrudController
         }
 
         $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
-        $now = new \DateTimeImmutable('now', new \DateTimeZone('Europe/Berlin'));
+        $timezone = new \DateTimeZone('Europe/Berlin');
+        $now = new \DateTimeImmutable('now', $timezone);
+
+        $startDateRaw = sanitize_text_field($_POST['startDate'] ?? '');
+        $endDateRaw = sanitize_text_field($_POST['endDate'] ?? '');
+
+        $startDate = null;
+        $endDate = null;
+
+        if (!empty($startDateRaw)) {
+            try {
+                $startDate = new \DateTimeImmutable($startDateRaw, $timezone);
+            } catch (\DateMalformedStringException $e) {
+                $startDate = null;
+            }
+        }
+
+        if (!empty($endDateRaw)) {
+            try {
+                $endDate = new \DateTimeImmutable($endDateRaw, $timezone);
+            } catch (\DateMalformedStringException $e) {
+                $endDate = null;
+            }
+        }
+
+        $createdAt = $now;
+        if ($id !== null) {
+            $existingNotice = $this->repository->findById($id);
+            if ($existingNotice) {
+                $createdAt = $existingNotice->createdAt;
+            }
+        }
+
+        $postedGroups = $_POST['groupId'] ?? [];
+
+        if (in_array('0', $postedGroups, true)) {
+            $groupIdsArray = [0];
+        } else {
+            $groupIdsArray = array_map('intval', $postedGroups);
+        }
 
         $noticeDto = new Notice(
             id: $id,
-            title: '',
+            groupId: maybe_serialize($groupIdsArray),
+            userId: get_current_user_id(),
+            targetUserId: 0,
+            title: sanitize_text_field($_POST['title'] ?? ''),
             message: sanitize_textarea_field($_POST['message'] ?? ''),
             status: sanitize_key($_POST['status'] ?? 'draft'),
             priority: sanitize_key($_POST['priority'] ?? 'normal'),
-            authorId: get_current_user_id(),
-            allowedRoles: [],
-            createdAt: $now,
+            startDate: $startDate,
+            endDate: $endDate,
+            createdAt: $createdAt,
             updatedAt: $now,
         );
 
@@ -150,7 +236,7 @@ final class NoticeController extends AbstractCrudController
     {
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-        if (!wp_verify_nonce($_GET['_wpnonce'] ?? '', 'delete_group_' . $id)) {
+        if (!wp_verify_nonce($_GET['_wpnonce'] ?? '', 'delete_notice_' . $id)) {
             wp_die(esc_html__('Security execution verification failed.', 'modestox-admin-sticky-notes'));
         }
 

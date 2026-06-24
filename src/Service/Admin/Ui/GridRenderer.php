@@ -36,7 +36,7 @@ final class GridRenderer extends \WP_List_Table
      */
     public function __construct(
         private array $columnsSchema,
-        array $dataset
+        array $dataset,
     ) {
         parent::__construct([
             'singular' => 'ui_item',
@@ -84,6 +84,35 @@ final class GridRenderer extends \WP_List_Table
     }
 
     /**
+     * Special row action override dedicated specifically for the 'title' column slot.
+     * Generates native absolute paths with inline state confirmations.
+     *
+     * @param array<string, mixed> $item
+     * @return string
+     */
+    protected function column_title(array $item): string
+    {
+        $page = isset($_GET['page']) ? sanitize_key($_GET['page']) : '';
+        return sprintf(
+            '<strong><a class="row-title" href="%s">%s</a></strong>',
+            esc_url(admin_url('admin.php?page=' . $page . '&action=edit&id=' . $item['id'])),
+            esc_html($item['title'])
+        );
+    }
+
+    /**
+     * Explicitly renders raw HTML actions buffer without escaping layout elements.
+     *
+     * @param array<string, mixed> $item
+     * @return string
+     */
+    protected function column_actions(array $item): string
+    {
+        // 🔥 Returns pre-compiled actions markup from Controller raw and fully working
+        return $item['actions'] ?? '';
+    }
+
+    /**
      * Renders column layout cells based on concrete registered metadata type configurations.
      * Optimized from nested O(N*M) loop searching to absolute O(1) hash table access map.
      *
@@ -101,10 +130,25 @@ final class GridRenderer extends \WP_List_Table
         }
 
         return match ($column->type) {
-            'badge' => sprintf('<span class="modestox-badge modestox-badge-%s" style="background:#e5e5e5;padding:3px 8px;border-radius:3px;font-weight:600;">%s</span>', esc_attr((string)$value), esc_html((string)$value)),
+            'badge'    => sprintf(
+                '<span class="modestox-badge modestox-badge-%s" style="background:#e5e5e5;padding:3px 8px;border-radius:3px;font-weight:600;">%s</span>',
+                esc_attr((string)$value),
+                esc_html((string)$value),
+            ),
             'datetime' => $value instanceof \DateTimeImmutable ? $value->format('Y-m-d H:i') : esc_html((string)$value),
-            default => esc_html((string)$value),
+            default    => esc_html((string)$value),
         };
+    }
+
+    /**
+     * Suppresses WordPress native row actions injection engine overlay inside the primary column bounds.
+     *
+     * @return string
+     */
+    protected function get_default_primary_column_name(): string
+    {
+        // 🔥 Returning a non-existent or standalone key completely breaks off core row-actions injections
+        return 'none';
     }
 
     /**

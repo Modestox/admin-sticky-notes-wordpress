@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Modestox\AdminStickyNotes\Infrastructure\Container;
 
 use Modestox\AdminStickyNotes\Infrastructure\Container;
+use Modestox\AdminStickyNotes\Repository\Group\GroupRepository;
 use Modestox\AdminStickyNotes\Repository\Notice\NoticeRepository;
 
 /**
@@ -29,5 +30,9 @@ final class RepositoryDefinitions implements ContainerDefinitionInterface
             NoticeRepository::class,
             static fn(): NoticeRepository => new NoticeRepository()
         );
+
+        $container->set(GroupRepository::class, static function () {
+            return new GroupRepository();
+        });
     }
 }

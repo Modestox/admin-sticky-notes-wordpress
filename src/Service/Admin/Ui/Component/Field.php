@@ -17,7 +17,7 @@ final readonly class Field
         public string $label,
         public string $type,
         public bool $isRequired = false,
-        public array $options = []
+        public array $options = [],
     ) {}
 
     public static function text(string $id, string $label, bool $isRequired = false): self
@@ -36,5 +36,29 @@ final readonly class Field
     public static function select(string $id, string $label, array $options, bool $isRequired = false): self
     {
         return new self($id, $label, 'select', $isRequired, $options);
+    }
+
+    /**
+     * Factory method to instantiate a strict numerical input component.
+     */
+    public static function number(string $id, string $label, bool $required = false): self
+    {
+        return new self($id, $label, 'number', $required);
+    }
+
+    /**
+     * Factory method to instantiate a strict datetime input component.
+     */
+    public static function datetime(string $id, string $label, bool $required = false): self
+    {
+        return new self($id, $label, 'datetime', $required);
+    }
+
+    /**
+     * Factory method to instantiate a multiple selection component.
+     */
+    public static function multiselect(string $id, string $label, array $options, bool $isRequired = false): self
+    {
+        return new self($id, $label, 'multiselect', $isRequired, $options);
     }
 }

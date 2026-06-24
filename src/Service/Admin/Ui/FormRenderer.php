@@ -1,11 +1,24 @@
 <?php
 
+/**
+ * Modestox CMS - E-commerce Platform
+ *
+ * @copyright Copyright (c) 2026 Sergey Kuzmitsky
+ * @license   AGPL-3.0-or-later
+ * @link      https://github.com/Modestox/modestox
+ */
+
 declare(strict_types=1);
 
 namespace Modestox\AdminStickyNotes\Service\Admin\Ui;
 
 use Modestox\AdminStickyNotes\Service\Admin\Ui\Component\Field;
 use Modestox\ConfigProcessorWp\Admin\Ui\Common\Field\Text;
+use Modestox\ConfigProcessorWp\Admin\Ui\Common\Field\Textarea;
+use Modestox\ConfigProcessorWp\Admin\Ui\Common\Field\Select;
+use Modestox\ConfigProcessorWp\Admin\Ui\Common\Field\MultiSelect;
+use Modestox\ConfigProcessorWp\Admin\Ui\Common\Field\Number;
+use Modestox\ConfigProcessorWp\Admin\Ui\Common\Field\DateTime;
 
 /**
  * Universal layout factory engine bridging abstract definitions with external decoupled UI Kit fields.
@@ -32,7 +45,7 @@ final readonly class FormRenderer
                 '<th scope="row"><label for="crud_%s">%s%s</label></th>',
                 esc_attr($field->id),
                 esc_html($field->label),
-                $field->isRequired ? ' <span class="required" style="color:red;">*</span>' : ''
+                $field->isRequired ? ' <span class="required" style="color:red;">*</span>' : '',
             );
             echo '<td>';
 
@@ -55,15 +68,14 @@ final readonly class FormRenderer
      */
     private function renderExternalField(Field $field, mixed $value): void
     {
-        // Формируем ту самую универсальную конфигурационную прослойку для AbstractField
         $fieldData = [
-            '_forced_name'  => $field->id,         // Переопределяем имя инпута: name="title", name="message"
-            '_forced_value' => $value,             // Подставляем значение из нашей сущности в обход get_option()
+            '_forced_name'  => $field->id,
+            '_forced_value' => $value,
             'placeholder'   => $field->label,
             'comment'       => '',
+            'required'      => $field->isRequired,
         ];
 
-        // Маршрутизируем типы на твои ООП-классы полей
         switch ($field->type) {
             case 'text':
                 $fieldUi = new Text();
@@ -71,18 +83,45 @@ final readonly class FormRenderer
                 break;
 
             case 'textarea':
-                // В будущем, когда создашь класс Textarea в пакете ConfigProcessorWp,
-                // ты просто заменишь этот фолбэк на: $fieldUi = new Textarea();
-                echo sprintf(
-                    '<textarea name="%s" id="crud_%s" class="large-text" rows="5" required="required">%s</textarea>',
-                    esc_attr($field->id),
-                    esc_attr($field->id),
-                    esc_textarea((string)$value)
-                );
+                $fieldUi = new Textarea();
+                $fieldUi->render($field->id, $fieldData);
+                break;
+
+            case 'number':
+                $fieldUi = new Number();
+                $fieldUi->render($field->id, $fieldData);
+                break;
+
+            case 'datetime':
+                $fieldData['view_mode'] = 'datetime';
+                $fieldUi = new DateTime();
+                $fieldUi->render($field->id, $fieldData);
+                break;
+
+            case 'select':
+                $formattedOptions = [];
+                foreach ($field->options as $option) {
+                    $formattedOptions[$option->value] = $option->label;
+                }
+
+                $fieldData['options'] = $formattedOptions;
+
+                $fieldUi = new Select();
+                $fieldUi->render($field->id, $fieldData);
+                break;
+            case 'multiselect':
+                $formattedOptions = [];
+                foreach ($field->options as $option) {
+                    $formattedOptions[$option->value] = $option->label;
+                }
+
+                $fieldData['options'] = $formattedOptions;
+
+                $fieldUi = new MultiSelect();
+                $fieldUi->render($field->id, $fieldData);
                 break;
 
             default:
-                // Фолбэк для базового текстового поля
                 $fieldUi = new Text();
                 $fieldUi->render($field->id, $fieldData);
                 break;

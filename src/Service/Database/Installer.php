@@ -43,9 +43,10 @@ final class Installer
         // 2. Schema for core sticky note entities and their target tracking relations
         $notesSql = "CREATE TABLE $notesTable (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            group_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            group_id varchar(2048) NOT NULL DEFAULT '0',
             user_id bigint(20) unsigned NOT NULL DEFAULT 0,
             target_user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+            title varchar(255) NOT NULL DEFAULT '',
             content text NOT NULL,
             status varchar(20) NOT NULL DEFAULT 'draft',
             priority varchar(20) NOT NULL DEFAULT 'normal',
@@ -54,7 +55,7 @@ final class Installer
             updated_at datetime NOT NULL,
             created_at datetime NOT NULL,
             PRIMARY KEY  (id),
-            KEY group_id (group_id),
+            KEY group_id (group_id(191)),
             KEY user_id (user_id),
             KEY target_user_id (target_user_id),
             KEY status (status),

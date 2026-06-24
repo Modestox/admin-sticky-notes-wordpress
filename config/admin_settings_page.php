@@ -11,16 +11,17 @@
 declare(strict_types=1);
 
 return [
-    'plugin'     => 'Modestox_AdminStickyNotes',
-    'page_slug'  => 'mtx-admin-sticky-notes',
-    'menu_title' => __('Admin Sticky Notes', 'modestox-admin-sticky-notes'),
-    'capability' => 'manage_options',
-    'schema'     => [
+    'plugin'      => 'Modestox_AdminStickyNotes',
+    'parent_slug' => 'modestox-admin-sticky-notes',
+    'page_slug'   => 'mtx-admin-sticky-notes-settings',
+    'menu_title'  => __('Settings', 'modestox-admin-sticky-notes'),
+    'capability'  => 'manage_options',
+    'schema'      => [
         'groups' => [
             'general' => [
                 'label'  => __('General', 'modestox-admin-sticky-notes'),
                 'fields' => [
-                    'info_work' => [
+                    'info_work'      => [
                         'type'   => 'infoblock',
                         'text'   => __('Краткое описанние', 'modestox-admin-sticky-notes'),
                         'format' => 'html',

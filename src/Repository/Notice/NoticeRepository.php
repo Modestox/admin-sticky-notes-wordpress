@@ -64,20 +64,28 @@ final readonly class NoticeRepository
 
         $direction = strtoupper($direction) === 'ASC' ? 'ASC' : 'DESC';
 
-        $allowedColumns = ['id', 'group_id', 'user_id', 'target_user_id', 'status', 'priority', 'created_at', 'updated_at'];
+        // Валидация колонки по белому списку названий из БД
+        $allowedColumns = [
+            'id', 'group_id', 'user_id', 'target_user_id',
+            'title', 'content', 'status', 'priority',
+            'start_date', 'end_date', 'created_at', 'updated_at'
+        ];
+
         if (!in_array($orderBy, $allowedColumns, true)) {
             $orderBy = 'id';
         }
 
-        $rows = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT * FROM {$this->tableName} ORDER BY %i {$direction} LIMIT %d OFFSET %d",
-                $orderBy,
-                $limit,
-                $offset
-            ),
-            ARRAY_A
+        // Безопасная сборка запроса с динамической сортировкой и плейсхолдерами лимитов
+        $query = sprintf(
+            "SELECT * FROM %s ORDER BY %s %s LIMIT %d OFFSET %d",
+            $this->tableName,
+            $orderBy,
+            $direction,
+            $limit,
+            $offset
         );
+
+        $rows = $wpdb->get_results($query, ARRAY_A);
 
         if (!is_array($rows)) {
             return [];
@@ -101,13 +109,17 @@ final readonly class NoticeRepository
     {
         global $wpdb;
 
+        // Полное и точное сопоставление свойств DTO с реальными колонками в БД
         $data = [
-            'group_id'       => $notice->authorId ? 1 : 1, // Placeholder logic mapping
-            'user_id'        => $notice->authorId,
-            'target_user_id' => 0,
+            'group_id'       => $notice->groupId,
+            'user_id'        => $notice->userId,
+            'target_user_id' => $notice->targetUserId,
+            'title'          => $notice->title,
             'content'        => $notice->message,
             'status'         => $notice->status,
             'priority'       => $notice->priority,
+            'start_date'     => $notice->startDate?->format('Y-m-d H:i:s'),
+            'end_date'       => $notice->endDate?->format('Y-m-d H:i:s'),
             'updated_at'     => $notice->updatedAt->format('Y-m-d H:i:s'),
         ];
 
@@ -142,14 +154,20 @@ final readonly class NoticeRepository
      */
     public function hydrate(array $data): Notice
     {
+        $startDateRaw = $data['start_date'] ?? null;
+        $endDateRaw   = $data['end_date'] ?? null;
+
         return new Notice(
             id: isset($data['id']) ? (int)$data['id'] : null,
-            title: '',
+            groupId: (string)($data['group_id'] ?? 0),
+            userId: (int)($data['user_id'] ?? 0),
+            targetUserId: (int)($data['target_user_id'] ?? 0),
+            title: (string)($data['title'] ?? ''),
             message: (string)($data['content'] ?? ''),
             status: (string)($data['status'] ?? 'draft'),
             priority: (string)($data['priority'] ?? 'normal'),
-            authorId: (int)($data['user_id'] ?? 0),
-            allowedRoles: [],
+            startDate: $startDateRaw ? new \DateTimeImmutable((string)$startDateRaw) : null,
+            endDate: $endDateRaw ? new \DateTimeImmutable((string)$endDateRaw) : null,
             createdAt: new \DateTimeImmutable((string)($data['created_at'] ?? 'now')),
             updatedAt: new \DateTimeImmutable((string)($data['updated_at'] ?? 'now'))
         );

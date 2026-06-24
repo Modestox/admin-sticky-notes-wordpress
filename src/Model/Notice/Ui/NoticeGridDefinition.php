@@ -27,11 +27,14 @@ final readonly class NoticeGridDefinition
     public function getColumns(): array
     {
         return [
-            Column::text('id', __('ID', 'modestox-admin-sticky-notes'), true),
             Column::text('title', __('Title', 'modestox-admin-sticky-notes'), true),
-            Column::badge('priority', __('Priority', 'modestox-admin-sticky-notes'), false),
+            Column::text('groupName', __('Group', 'modestox-admin-sticky-notes'), true),
             Column::badge('status', __('Status', 'modestox-admin-sticky-notes'), true),
-            Column::datetime('createdAt', __('Created At', 'modestox-admin-sticky-notes'), true),
+            Column::badge('priority', __('Priority', 'modestox-admin-sticky-notes'), false),
+            Column::datetime('startDate', __('Start Date', 'modestox-admin-sticky-notes'), true),
+            Column::datetime('endDate', __('End Date', 'modestox-admin-sticky-notes'), true),
+
+            Column::text('actions', __('Actions', 'modestox-admin-sticky-notes'), false),
         ];
     }
 }
