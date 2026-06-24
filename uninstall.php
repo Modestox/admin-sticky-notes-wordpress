@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-use Modestox\AdminStickyNotes\Service\Database\Installer;
+use Modestox\AdminStickyNotes\Infrastructure\Database\Installer; // 🔥 Target updated namespace
 
 if (!defined('WP_UNINSTALL_PLUGIN')) {
     exit;

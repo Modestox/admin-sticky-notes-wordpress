@@ -10,7 +10,7 @@
 
 declare(strict_types=1);
 
-namespace Modestox\AdminStickyNotes\Model\Notice;
+namespace Modestox\AdminStickyNotes\Notice\Domain;
 
 /**
  * Data Transfer Object representing a single sticky note entity aligned with the schema layout.
@@ -21,7 +21,7 @@ final readonly class Notice
      * Dependency Injection via Constructor Property Promotion (PHP 8.3 standard).
      *
      * @param int|null $id
-     * @param int $groupId
+     * @param string $groupId
      * @param int $userId
      * @param int $targetUserId
      * @param string $title

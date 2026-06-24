@@ -1,8 +1,16 @@
 <?php
 
+/**
+ * Modestox CMS - E-commerce Platform
+ *
+ * @copyright Copyright (c) 2026 Sergey Kuzmitsky
+ * @license   AGPL-3.0-or-later
+ * @link      https://github.com/Modestox/modestox
+ */
+
 declare(strict_types=1);
 
-namespace Modestox\AdminStickyNotes\Service\Admin\Ui\Component;
+namespace Modestox\AdminStickyNotes\Shared\Ui\Component;
 
 /**
  * Metadata descriptor defining form input parameters and behavioral validation rules.
@@ -38,24 +46,18 @@ final readonly class Field
         return new self($id, $label, 'select', $isRequired, $options);
     }
 
-    /**
-     * Factory method to instantiate a strict numerical input component.
-     */
     public static function number(string $id, string $label, bool $required = false): self
     {
         return new self($id, $label, 'number', $required);
     }
 
-    /**
-     * Factory method to instantiate a strict datetime input component.
-     */
     public static function datetime(string $id, string $label, bool $required = false): self
     {
         return new self($id, $label, 'datetime', $required);
     }
 
     /**
-     * Factory method to instantiate a multiple selection component.
+     * @param array<int, FieldOption> $options
      */
     public static function multiselect(string $id, string $label, array $options, bool $isRequired = false): self
     {

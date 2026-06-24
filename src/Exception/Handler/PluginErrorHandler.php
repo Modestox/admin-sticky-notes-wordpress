@@ -1,66 +1,47 @@
 <?php
 
+/**
+ * Modestox CMS - E-commerce Platform
+ *
+ * @copyright Copyright (c) 2026 Sergey Kuzmitsky
+ * @license   AGPL-3.0-or-later
+ * @link      https://github.com/Modestox/modestox
+ */
+
 declare(strict_types=1);
 
 namespace Modestox\AdminStickyNotes\Exception\Handler;
 
 /**
- * High-level infrastructure layer handler responsible for processing unexpected runtime faults
- * and anomalies depending on the active WordPress execution environment.
+ * Centralized exception catcher handling unexpected runtime failures.
  */
 final readonly class PluginErrorHandler
 {
     /**
-     * Inspects the exception context and terminates or logs the fault safely.
-     * Re-throws the exception if the environment context is unrecognizable.
+     * Catches and logs throwables to avoid breaking the global WordPress core engine execution.
      *
-     * @throws \Throwable
+     * @param \Throwable $exception Standard caught executable failure token descriptor.
+     * @return void
      */
     public function handle(\Throwable $exception): void
     {
-        // 1. Always log to standard server error log stream
-        error_log(sprintf('[Modestox Admin Sticky Notes] %s', $exception->getMessage()));
+        $message = sprintf(
+            '[Modestox Admin Sticky Notes Error]: %s in %s on line %d. Stack Trace: %s',
+            $exception->getMessage(),
+            $exception->getFile(),
+            $exception->getLine(),
+            $exception->getTraceAsString()
+        );
 
-        // 2. WP-CLI execution support context
-        if (defined('WP_CLI') && \WP_CLI) {
-            \WP_CLI::error($exception->getMessage());
-            return;
+        error_log($message);
+
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            add_action('admin_notices', static function () use ($exception): void {
+                echo sprintf(
+                    '<div class="notice notice-error"><p><strong>Modestox Fault:</strong> %s</p></div>',
+                    esc_html($exception->getMessage())
+                );
+            });
         }
-
-        // 3. REST API & AJAX contexts - use safe native WordPress JSON wrapper
-        if ($this->isRestRequest() || (defined('DOING_AJAX') && \DOING_AJAX)) {
-            wp_send_json_error([
-                'error'   => 'Component Configuration Fault',
-                'message' => $exception->getMessage(),
-            ], 500);
-        }
-
-        // 4. Background Cron queue worker context
-        if (defined('DOING_CRON') && \DOING_CRON) {
-            return;
-        }
-
-        // 5. Native Admin UI fallback display screen
-        if (is_admin()) {
-            wp_die(
-                esc_html($exception->getMessage()),
-                'Modestox Component Error',
-                [
-                    'response'  => 500,
-                    'back_link' => true,
-                ],
-            );
-        }
-
-        // 6. Final safety net: if context is completely unknown, re-throw to crash loudly and safely
-        throw $exception;
-    }
-
-    /**
-     * Evaluates whether the current environment transaction targets REST endpoints.
-     */
-    private function isRestRequest(): bool
-    {
-        return defined('REST_REQUEST') && \REST_REQUEST;
     }
 }

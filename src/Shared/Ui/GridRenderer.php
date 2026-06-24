@@ -10,9 +10,9 @@
 
 declare(strict_types=1);
 
-namespace Modestox\AdminStickyNotes\Service\Admin\Ui;
+namespace Modestox\AdminStickyNotes\Shared\Ui;
 
-use Modestox\AdminStickyNotes\Service\Admin\Ui\Component\Column;
+use Modestox\AdminStickyNotes\Shared\Ui\Component\Column;
 
 if (!class_exists('WP_List_Table')) {
     require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
@@ -108,7 +108,6 @@ final class GridRenderer extends \WP_List_Table
      */
     protected function column_actions(array $item): string
     {
-        // 🔥 Returns pre-compiled actions markup from Controller raw and fully working
         return $item['actions'] ?? '';
     }
 
@@ -147,7 +146,6 @@ final class GridRenderer extends \WP_List_Table
      */
     protected function get_default_primary_column_name(): string
     {
-        // 🔥 Returning a non-existent or standalone key completely breaks off core row-actions injections
         return 'none';
     }
 

@@ -10,10 +10,10 @@
 
 declare(strict_types=1);
 
-namespace Modestox\AdminStickyNotes\Model\Notice\Ui;
+namespace Modestox\AdminStickyNotes\Notice\Ui;
 
-use Modestox\AdminStickyNotes\Service\Admin\Ui\Component\Field;
-use Modestox\AdminStickyNotes\Service\Admin\Ui\Component\FieldOption;
+use Modestox\AdminStickyNotes\Shared\Ui\Component\Field;
+use Modestox\AdminStickyNotes\Shared\Ui\Component\FieldOption;
 
 /**
  * Declarative single source of truth form structural layout metadata definition for Notices.
@@ -28,9 +28,8 @@ final readonly class NoticeFormDefinition
      */
     public function getFields(array $groupPairs = []): array
     {
-        // Add the generic global wildcard option for all groups execution bounds
         $groupOptions = [
-            new FieldOption('0', __('— All Groups —', 'modestox-admin-sticky-notes'))
+            new FieldOption('0', __('— All Groups —', 'modestox-admin-sticky-notes')),
         ];
 
         foreach ($groupPairs as $id => $title) {
@@ -52,8 +51,8 @@ final readonly class NoticeFormDefinition
                 new FieldOption('publish', __('Published (Active)', 'modestox-admin-sticky-notes')),
                 new FieldOption('archived', __('Archived', 'modestox-admin-sticky-notes')),
             ], true),
-            Field::datetime('startDate', __('Execution Start Date', 'modestox-admin-sticky-notes'), true),
-            Field::datetime('endDate', __('Execution End Date', 'modestox-admin-sticky-notes'), true),
+            Field::datetime('startDate', __('Execution Start Date', 'modestox-admin-sticky-notes'), false),
+            Field::datetime('endDate', __('Execution End Date', 'modestox-admin-sticky-notes'), false),
         ];
     }
 }

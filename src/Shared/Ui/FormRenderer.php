@@ -10,9 +10,9 @@
 
 declare(strict_types=1);
 
-namespace Modestox\AdminStickyNotes\Service\Admin\Ui;
+namespace Modestox\AdminStickyNotes\Shared\Ui;
 
-use Modestox\AdminStickyNotes\Service\Admin\Ui\Component\Field;
+use Modestox\AdminStickyNotes\Shared\Ui\Component\Field;
 use Modestox\ConfigProcessorWp\Admin\Ui\Common\Field\Text;
 use Modestox\ConfigProcessorWp\Admin\Ui\Common\Field\Textarea;
 use Modestox\ConfigProcessorWp\Admin\Ui\Common\Field\Select;
@@ -109,6 +109,7 @@ final readonly class FormRenderer
                 $fieldUi = new Select();
                 $fieldUi->render($field->id, $fieldData);
                 break;
+
             case 'multiselect':
                 $formattedOptions = [];
                 foreach ($field->options as $option) {

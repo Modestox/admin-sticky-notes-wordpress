@@ -11,25 +11,33 @@
 declare(strict_types=1);
 
 return [
-    'plugin'      => 'Modestox_AdminStickyNotes',
-    'parent_slug' => 'modestox-admin-sticky-notes',
-    'page_slug'   => 'mtx-admin-sticky-notes-settings',
-    'menu_title'  => __('Settings', 'modestox-admin-sticky-notes'),
-    'capability'  => 'manage_options',
-    'schema'      => [
-        'groups' => [
-            'general' => [
-                'label'  => __('General', 'modestox-admin-sticky-notes'),
-                'fields' => [
-                    'info_work'      => [
-                        'type'   => 'infoblock',
-                        'text'   => __('Краткое описанние', 'modestox-admin-sticky-notes'),
-                        'format' => 'html',
-                    ],
-                    'enable_logging' => [
-                        'type'    => 'yes_no',
-                        'default' => 1,
-                    ],
+    'page_title' => __('Sticky Notes Settings', 'modestox-admin-sticky-notes'),
+    'menu_title' => __('Sticky Notes', 'modestox-admin-sticky-notes'),
+    'capability' => 'manage_options',
+    'menu_slug'  => 'modestox-sticky-notes-settings',
+    'icon_url'   => '',
+    'position'   => null,
+    'sections'   => [
+        [
+            'id'     => 'general_settings',
+            'title'  => __('General Settings', 'modestox-admin-sticky-notes'),
+            'fields' => [
+                [
+                    'id'          => 'enable_marquee',
+                    'type'        => 'checkbox',
+                    'title'       => __('Enable Global Marquee Alert', 'modestox-admin-sticky-notes'),
+                    'description' => __(
+                        'Display critical notices as a running text marquee line across admin header.',
+                        'modestox-admin-sticky-notes',
+                    ),
+                    'default'     => '0',
+                ],
+                [
+                    'id'          => 'refresh_interval',
+                    'type'        => 'number',
+                    'title'       => __('AJAX Polling Refresh Interval', 'modestox-admin-sticky-notes'),
+                    'description' => __('Interval in seconds to pull active sticky updates from database.', 'modestox-admin-sticky-notes'),
+                    'default'     => '60',
                 ],
             ],
         ],

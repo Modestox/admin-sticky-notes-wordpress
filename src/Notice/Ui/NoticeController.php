@@ -10,16 +10,14 @@
 
 declare(strict_types=1);
 
-namespace Modestox\AdminStickyNotes\Controller\Admin;
+namespace Modestox\AdminStickyNotes\Notice\Ui;
 
-use Modestox\AdminStickyNotes\Service\Admin\Ui\AbstractCrudController;
-use Modestox\AdminStickyNotes\Repository\Notice\NoticeRepository;
-use Modestox\AdminStickyNotes\Repository\Group\GroupRepository;
-use Modestox\AdminStickyNotes\Model\Notice\Notice;
-use Modestox\AdminStickyNotes\Model\Notice\Ui\NoticeGridDefinition;
-use Modestox\AdminStickyNotes\Model\Notice\Ui\NoticeFormDefinition;
-use Modestox\AdminStickyNotes\Service\Admin\Ui\GridRenderer;
-use Modestox\AdminStickyNotes\Service\Admin\Ui\FormRenderer;
+use Modestox\AdminStickyNotes\Shared\Crud\AbstractCrudController;
+use Modestox\AdminStickyNotes\Notice\Repository\NoticeRepository;
+use Modestox\AdminStickyNotes\Group\Repository\GroupRepository; // 🔥 FIXED: Using updated domain repository path
+use Modestox\AdminStickyNotes\Notice\Domain\Notice;
+use Modestox\AdminStickyNotes\Shared\Ui\GridRenderer;
+use Modestox\AdminStickyNotes\Shared\Ui\FormRenderer;
 
 /**
  * Concrete routing controller handling the administration lifecycles of notices.
@@ -28,11 +26,10 @@ final class NoticeController extends AbstractCrudController
 {
     /**
      * Dependency Injection via Constructor Property Promotion.
-     * The DI container automatically resolves and injects the NoticeRepository instance.
      */
     public function __construct(
         private NoticeRepository $repository,
-        private GroupRepository $groupRepository,
+        private GroupRepository $groupRepository, // Now strictly expects the domain version
     ) {}
 
     /**
@@ -57,7 +54,6 @@ final class NoticeController extends AbstractCrudController
                 $groupName = implode(', ', $names);
             }
 
-            // Compile clean standalone action endpoints for external actions column layout bounds
             $editUrl = admin_url(sprintf('admin.php?page=%s&action=edit&id=%d', sanitize_key($_GET['page'] ?? ''), $notice->id));
             $deleteUrl = wp_nonce_url(
                 admin_url(sprintf('admin.php?page=%s&action=delete&id=%d', sanitize_key($_GET['page'] ?? ''), $notice->id)),

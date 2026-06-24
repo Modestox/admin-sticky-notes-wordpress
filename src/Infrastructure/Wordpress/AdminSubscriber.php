@@ -10,7 +10,7 @@
 
 declare(strict_types=1);
 
-namespace Modestox\AdminStickyNotes\Service;
+namespace Modestox\AdminStickyNotes\Infrastructure\Wordpress;
 
 use Modestox\AdminStickyNotes\Config\AdminMenuRegistry;
 
@@ -36,8 +36,6 @@ final readonly class AdminSubscriber
     {
         add_filter('modestox_register_admin_plugin_config', [$this, 'registerAdminPages']);
         add_action('admin_menu', [$this, 'registerAdminMenus']);
-
-        // Перехватываем мутации данных до старта вывода HTML
         add_action('admin_init', [$this, 'handleAdminMutations']);
     }
 
@@ -59,21 +57,18 @@ final readonly class AdminSubscriber
     }
 
     /**
-     * Intercepts and processes data mutations (save, delete) before any HTTP headers or HTML are emitted.
+     * Intercepts and processes data mutations (save, delete) before any HTML is emitted.
      *
      * @return void
      */
     public function handleAdminMutations(): void
     {
-        // Проверяем, относится ли текущий запрос к нашему плагину
         $currentPage = $_GET['page'] ?? '';
         if ($currentPage !== 'modestox-admin-sticky-notes' && $currentPage !== 'modestox-notices-new') {
             return;
         }
 
         $action = isset($_GET['action']) ? (string)$_GET['action'] : '';
-
-        // Обрабатываем только те действия, которые требуют редиректа и не выводят HTML
         if ($action !== 'save' && $action !== 'delete') {
             return;
         }
@@ -106,7 +101,6 @@ final readonly class AdminSubscriber
             return;
         }
 
-        // 1. Root main dashboard navigation link entrypoint
         add_menu_page(
             $parent['page_title'],
             $parent['menu_title'],
@@ -115,7 +109,6 @@ final readonly class AdminSubscriber
             function () use ($parent): void {
                 $action = isset($_GET['action']) ? (string)$_GET['action'] : 'list';
 
-                // Защита: если каким-то образом попал экшен мутации, не рендерим его тут
                 if ($action === 'save' || $action === 'delete') {
                     return;
                 }
@@ -132,7 +125,6 @@ final readonly class AdminSubscriber
             $parent['position'],
         );
 
-        // 2. Nested submenus orchestration loop link mappings
         $submenus = $schema['submenus'] ?? [];
         foreach ($submenus as $submenu) {
             $isDuplicateOfParent = ($submenu['menu_slug'] === $parent['menu_slug']);

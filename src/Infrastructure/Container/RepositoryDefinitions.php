@@ -13,8 +13,8 @@ declare(strict_types=1);
 namespace Modestox\AdminStickyNotes\Infrastructure\Container;
 
 use Modestox\AdminStickyNotes\Infrastructure\Container;
-use Modestox\AdminStickyNotes\Repository\Group\GroupRepository;
-use Modestox\AdminStickyNotes\Repository\Notice\NoticeRepository;
+use Modestox\AdminStickyNotes\Notice\Repository\NoticeRepository;
+use Modestox\AdminStickyNotes\Group\Repository\GroupRepository; // 🔥 Switched to the new path
 
 /**
  * Explicit configuration registry dedicated exclusively for Data Access Layer repositories.
@@ -31,8 +31,9 @@ final class RepositoryDefinitions implements ContainerDefinitionInterface
             static fn(): NoticeRepository => new NoticeRepository()
         );
 
-        $container->set(GroupRepository::class, static function () {
-            return new GroupRepository();
-        });
+        $container->set(
+            GroupRepository::class,
+            static fn(): GroupRepository => new GroupRepository() // 🔥 Clean updated container wiring
+        );
     }
 }

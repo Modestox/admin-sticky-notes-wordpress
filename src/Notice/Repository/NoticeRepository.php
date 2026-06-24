@@ -10,9 +10,9 @@
 
 declare(strict_types=1);
 
-namespace Modestox\AdminStickyNotes\Repository\Notice;
+namespace Modestox\AdminStickyNotes\Notice\Repository;
 
-use Modestox\AdminStickyNotes\Model\Notice\Notice;
+use Modestox\AdminStickyNotes\Notice\Domain\Notice;
 
 /**
  * Handles persistent abstraction layer boundaries for Notice domain entities.
@@ -64,7 +64,6 @@ final readonly class NoticeRepository
 
         $direction = strtoupper($direction) === 'ASC' ? 'ASC' : 'DESC';
 
-        // Валидация колонки по белому списку названий из БД
         $allowedColumns = [
             'id', 'group_id', 'user_id', 'target_user_id',
             'title', 'content', 'status', 'priority',
@@ -75,7 +74,6 @@ final readonly class NoticeRepository
             $orderBy = 'id';
         }
 
-        // Безопасная сборка запроса с динамической сортировкой и плейсхолдерами лимитов
         $query = sprintf(
             "SELECT * FROM %s ORDER BY %s %s LIMIT %d OFFSET %d",
             $this->tableName,
@@ -109,7 +107,6 @@ final readonly class NoticeRepository
     {
         global $wpdb;
 
-        // Полное и точное сопоставление свойств DTO с реальными колонками в БД
         $data = [
             'group_id'       => $notice->groupId,
             'user_id'        => $notice->userId,
@@ -159,7 +156,7 @@ final readonly class NoticeRepository
 
         return new Notice(
             id: isset($data['id']) ? (int)$data['id'] : null,
-            groupId: (string)($data['group_id'] ?? 0),
+            groupId: (string)($data['group_id'] ?? '0'),
             userId: (int)($data['user_id'] ?? 0),
             targetUserId: (int)($data['target_user_id'] ?? 0),
             title: (string)($data['title'] ?? ''),

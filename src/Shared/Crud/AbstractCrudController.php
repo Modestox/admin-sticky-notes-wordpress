@@ -10,7 +10,7 @@
 
 declare(strict_types=1);
 
-namespace Modestox\AdminStickyNotes\Service\Admin\Ui;
+namespace Modestox\AdminStickyNotes\Shared\Crud;
 
 /**
  * Baseline execution abstraction encapsulating request routing, state mutations, and view rendering.

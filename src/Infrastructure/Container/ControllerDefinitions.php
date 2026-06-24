@@ -13,9 +13,9 @@ declare(strict_types=1);
 namespace Modestox\AdminStickyNotes\Infrastructure\Container;
 
 use Modestox\AdminStickyNotes\Infrastructure\Container;
-use Modestox\AdminStickyNotes\Controller\Admin\NoticeController;
-use Modestox\AdminStickyNotes\Repository\Notice\NoticeRepository;
-use Modestox\AdminStickyNotes\Repository\Group\GroupRepository;
+use Modestox\AdminStickyNotes\Notice\Ui\NoticeController;
+use Modestox\AdminStickyNotes\Notice\Repository\NoticeRepository;
+use Modestox\AdminStickyNotes\Group\Repository\GroupRepository; // 🔥 Switched to the new path
 
 /**
  * Explicit configuration registry dedicated exclusively for presentation layer controllers setup.
@@ -34,8 +34,5 @@ final class ControllerDefinitions implements ContainerDefinitionInterface
                 $c->get(GroupRepository::class),
             ),
         );
-
-        // Сюда будут расти контроллеры, не мешая репозиториям и сервисам:
-        // $container->set(UserController::class, static fn(Container $c) => new UserController($c->get(UserRepository::class)));
     }
 }

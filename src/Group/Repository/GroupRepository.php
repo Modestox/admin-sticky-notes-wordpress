@@ -10,7 +10,7 @@
 
 declare(strict_types=1);
 
-namespace Modestox\AdminStickyNotes\Repository\Group;
+namespace Modestox\AdminStickyNotes\Group\Repository; // 🔥 New strict domain namespace
 
 /**
  * Handles persistent database operations for Sticky Note Groups.

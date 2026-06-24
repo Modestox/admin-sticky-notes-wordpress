@@ -15,9 +15,9 @@ namespace Modestox\AdminStickyNotes;
 use Modestox\AdminStickyNotes\Config\AdminMenuRegistry;
 use Modestox\AdminStickyNotes\Config\ConfigLoader;
 use Modestox\AdminStickyNotes\Exception\Handler\PluginErrorHandler;
-use Modestox\AdminStickyNotes\Service\AdminSubscriber;
+use Modestox\AdminStickyNotes\Infrastructure\Wordpress\AdminSubscriber; // 🔥 New namespace path
 use Modestox\AdminStickyNotes\Service\I18nService;
-use Modestox\AdminStickyNotes\Service\Database\Installer;
+use Modestox\AdminStickyNotes\Infrastructure\Database\Installer;       // 🔥 New namespace path
 use Modestox\AdminStickyNotes\Infrastructure\Container;
 use Modestox\AdminStickyNotes\Infrastructure\ContainerConfigurator;
 
@@ -45,8 +45,6 @@ final class Plugin
 
     /**
      * Returns the global singleton instance of the plugin bootstrap.
-     *
-     * @return self
      */
     public static function instance(): self
     {
@@ -58,8 +56,6 @@ final class Plugin
 
     /**
      * Context execution for one-time plugin activation logic.
-     *
-     * @return void
      */
     public static function activate(): void
     {
@@ -79,8 +75,6 @@ final class Plugin
 
     /**
      * Orchestrates the boot sequence and hooks of the plugin.
-     *
-     * @return void
      */
     public function boot(): void
     {
@@ -102,8 +96,6 @@ final class Plugin
 
     /**
      * Returns the dedicated business domain isolated service container handler instance.
-     *
-     * @return Container
      */
     public function getContainer(): Container
     {
@@ -112,18 +104,13 @@ final class Plugin
 
     /**
      * Instantiates internal bootstrap infrastructure configuration handlers.
-     *
-     * @return void
      */
     private function registerServices(): void
     {
         $configLoader = new ConfigLoader();
         $menuRegistry = new AdminMenuRegistry($configLoader);
 
-        // 1. Initialize clean independent container wrapper engine
         $this->container = new Container();
-
-        // 2. Delegate dependency wiring mapping definitions to external configurator
         ContainerConfigurator::configure($this->container);
 
         $this->adminSubscriber = new AdminSubscriber($menuRegistry);
@@ -131,25 +118,13 @@ final class Plugin
         $this->errorHandler = new PluginErrorHandler();
     }
 
-    /**
-     * Cloning of a singleton instance is strictly prohibited.
-     *
-     * @return void
-     * @throws \LogicException Always.
-     */
     public function __clone(): void
     {
         throw new \LogicException('Cloning of a singleton instance is strictly prohibited.');
     }
 
-    /**
-     * Unserializing of a singleton instance is strictly prohibited.
-     *
-     * @return void
-     * @throws \LogicException Always.
-     */
     public function __wakeup(): void
     {
-        throw new \LogicException('Unserializing of a singleton instance is strictly prohibited.');
+        throw new \LogicException('Unserializing of a singleton instance is prohibited.');
     }
 }

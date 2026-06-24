@@ -10,9 +10,9 @@
 
 declare(strict_types=1);
 
-namespace Modestox\AdminStickyNotes\Model\Notice\Ui;
+namespace Modestox\AdminStickyNotes\Notice\Ui;
 
-use Modestox\AdminStickyNotes\Service\Admin\Ui\Component\Column;
+use Modestox\AdminStickyNotes\Shared\Ui\Component\Column;
 
 /**
  * Declarative single source of truth grid structural layout layout definition for Notices.
@@ -33,7 +33,6 @@ final readonly class NoticeGridDefinition
             Column::badge('priority', __('Priority', 'modestox-admin-sticky-notes'), false),
             Column::datetime('startDate', __('Start Date', 'modestox-admin-sticky-notes'), true),
             Column::datetime('endDate', __('End Date', 'modestox-admin-sticky-notes'), true),
-
             Column::text('actions', __('Actions', 'modestox-admin-sticky-notes'), false),
         ];
     }
