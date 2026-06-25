@@ -28,19 +28,19 @@ final readonly class NoticeRepository
     }
 
     /**
-     * Fetches all notices with strict sorting and pagination boundaries.
+     * Fetches notices with strict sorting, pagination, and structural filtering boundaries.
      *
      * @param string $orderBy Validated database column name.
      * @param string $direction Sort order direction (ASC|DESC).
      * @param int $limit Maximum number of records to return.
      * @param int $offset Number of records to skip.
+     * @param array{status?: string, priority?: string} $filters SQL constraints filters.
      * @return array<int, Notice>
      */
-    public function findAll(string $orderBy = 'id', string $direction = 'DESC', int $limit = 20, int $offset = 0): array
+    public function findAll(string $orderBy = 'id', string $direction = 'DESC', int $limit = 20, int $offset = 0, array $filters = []): array
     {
         global $wpdb;
 
-        // Strict whitelist filtering to prevent SQL injection vulnerabilities
         $allowedColumns = ['id', 'title', 'status', 'priority', 'start_date', 'end_date'];
         if (!in_array($orderBy, $allowedColumns, true)) {
             $orderBy = 'id';
@@ -48,9 +48,32 @@ final readonly class NoticeRepository
 
         $direction = strtoupper($direction) === 'ASC' ? 'ASC' : 'DESC';
 
+        $whereClauses = ['1=1'];
+
+        if (!empty($filters['status'])) {
+            $whereClauses[] = $wpdb->prepare("status = %s", $filters['status']);
+        }
+        if (!empty($filters['priority'])) {
+            $whereClauses[] = $wpdb->prepare("priority = %s", $filters['priority']);
+        }
+
+        if (isset($filters['group']) && $filters['group'] !== '') {
+            $groupVal = (int)$filters['group'];
+            $likePattern = '%' . $wpdb->esc_like(sprintf(':%d;', $groupVal)) . '%';
+            $whereClauses[] = $wpdb->prepare("group_id LIKE %s", $likePattern);
+        }
+
+        if (!empty($filters['search'])) {
+            $searchPattern = '%' . $wpdb->esc_like($filters['search']) . '%';
+            $whereClauses[] = $wpdb->prepare("(title LIKE %s OR content LIKE %s)", $searchPattern, $searchPattern);
+        }
+
+        $whereSql = implode(' AND ', $whereClauses);
+
         $sql = sprintf(
-            "SELECT * FROM %s ORDER BY %s %s LIMIT %d OFFSET %d",
+            "SELECT * FROM %s WHERE %s ORDER BY %s %s LIMIT %d OFFSET %d",
             $this->tableName,
+            $whereSql,
             $orderBy,
             $direction,
             $limit,
@@ -67,14 +90,39 @@ final readonly class NoticeRepository
     }
 
     /**
-     * Returns the total count of rows inside the database table.
+     * Returns the total count of filtered rows inside the database table.
      *
+     * @param array{status?: string, priority?: string} $filters SQL constraints filters.
      * @return int
      */
-    public function countAll(): int
+    public function countAll(array $filters = []): int
     {
         global $wpdb;
-        return (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->tableName}");
+
+        $whereClauses = ['1=1'];
+
+        if (!empty($filters['status'])) {
+            $whereClauses[] = $wpdb->prepare("status = %s", $filters['status']);
+        }
+        if (!empty($filters['priority'])) {
+            $whereClauses[] = $wpdb->prepare("priority = %s", $filters['priority']);
+        }
+
+        if (isset($filters['group']) && $filters['group'] !== '') {
+            $groupVal = (int)$filters['group'];
+            // Ищем подстроку вида i:0;i:1; или s:1:"1"; внутри сериализованного массива
+            $likePattern = '%' . $wpdb->esc_like(sprintf(':%d;', $groupVal)) . '%';
+            $whereClauses[] = $wpdb->prepare("group_id LIKE %s", $likePattern);
+        }
+
+        if (!empty($filters['search'])) {
+            $searchPattern = '%' . $wpdb->esc_like($filters['search']) . '%';
+            $whereClauses[] = $wpdb->prepare("(title LIKE %s OR content LIKE %s)", $searchPattern, $searchPattern);
+        }
+
+        $whereSql = implode(' AND ', $whereClauses);
+
+        return (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->tableName} WHERE {$whereSql}");
     }
 
     /**

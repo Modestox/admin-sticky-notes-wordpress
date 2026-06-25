@@ -26,6 +26,7 @@ final readonly class Field
         public string $type,
         public bool $isRequired = false,
         public array $options = [],
+        public array $customMeta = [],
     ) {}
 
     public static function text(string $id, string $label, bool $isRequired = false): self
@@ -38,9 +39,6 @@ final readonly class Field
         return new self($id, $label, 'textarea', $isRequired);
     }
 
-    /**
-     * @param array<int, FieldOption> $options
-     */
     public static function select(string $id, string $label, array $options, bool $isRequired = false): self
     {
         return new self($id, $label, 'select', $isRequired, $options);
@@ -56,11 +54,20 @@ final readonly class Field
         return new self($id, $label, 'datetime', $required);
     }
 
-    /**
-     * @param array<int, FieldOption> $options
-     */
     public static function multiselect(string $id, string $label, array $options, bool $isRequired = false): self
     {
         return new self($id, $label, 'multiselect', $isRequired, $options);
+    }
+
+    public static function dynamicRows(string $id, string $label, array $columns, bool $isRequired = false): self
+    {
+        return new self(
+            id: $id,
+            label: $label,
+            type: 'dynamic_rows',
+            isRequired: $isRequired,
+            options: [],
+            customMeta: ['columns' => $columns],
+        );
     }
 }

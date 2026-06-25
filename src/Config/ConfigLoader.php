@@ -23,8 +23,6 @@ final readonly class ConfigLoader
 
     private const string FILE_ADMIN_SETTINGS = 'admin_settings_page';
     private const string FILE_ADMIN = 'admin_menu';
-    private const string FILE_PERMISSIONS = 'permissions';
-    private const string FILE_NOTIFICATIONS = 'notifications';
 
     public function adminSettingsPage(): array
     {
@@ -34,16 +32,6 @@ final readonly class ConfigLoader
     public function adminMenu(): array
     {
         return $this->load(self::FILE_ADMIN);
-    }
-
-    public function permissions(): array
-    {
-        return $this->load(self::FILE_PERMISSIONS);
-    }
-
-    public function notifications(): array
-    {
-        return $this->load(self::FILE_NOTIFICATIONS);
     }
 
     /**

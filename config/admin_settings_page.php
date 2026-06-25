@@ -25,11 +25,62 @@ return [
                         'type'    => 'select',
                         'label'   => __('Page limit', 'modestox-admin-sticky-notes'),
                         'options' => [
-                            5 => '5',
-                            10 => '10',
-                            20 => '20',
+                            10  => '10',
+                            20  => '20',
+                            30  => '30',
+                            50  => '50',
+                            100 => '100',
+                            200 => '200',
                         ],
                         'default' => '10',
+                    ],
+                    'notes_priority'  => [
+                        'type'    => 'dynamic_rows',
+                        'label'   => __('Urgency Priority', 'modestox-admin-sticky-notes'),
+                        'columns' => [
+                            'code'  => 'Code',
+                            'title' => 'Title',
+                        ],
+                        'default' => [
+                            [
+                                'code'  => 'low',
+                                'title' => __('Low', 'modestox-admin-sticky-notes'),
+                            ],
+                            [
+                                'code'  => 'normal',
+                                'title' => __('Normal', 'modestox-admin-sticky-notes'),
+                            ],
+                            [
+                                'code'  => 'high',
+                                'title' => __('High', 'modestox-admin-sticky-notes'),
+                            ],
+                            [
+                                'code'  => 'critical',
+                                'title' => __('Critical', 'modestox-admin-sticky-notes'),
+                            ],
+                        ],
+                    ],
+                    'notes_status'    => [
+                        'type'    => 'dynamic_rows',
+                        'label'   => __('Lifecycle Status', 'modestox-admin-sticky-notes'),
+                        'columns' => [
+                            'code'  => 'Code',
+                            'title' => 'Title',
+                        ],
+                        'default' => [
+                            [
+                                'code'  => 'draft',
+                                'title' => __('Draft (Hidden)', 'modestox-admin-sticky-notes'),
+                            ],
+                            [
+                                'code'  => 'publish',
+                                'title' => __('Published (Active)', 'modestox-admin-sticky-notes'),
+                            ],
+                            [
+                                'code'  => 'archived',
+                                'title' => __('Archived', 'modestox-admin-sticky-notes'),
+                            ],
+                        ],
                     ],
                 ],
             ],

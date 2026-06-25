@@ -24,7 +24,6 @@ final class ServiceDefinitions implements ContainerDefinitionInterface
      */
     public static function register(Container $container): void
     {
-        // Сюда будут инжектиться чисто бизнес-сервисы по мере роста платформы:
         // $container->set(ExportService::class, static fn(Container $c) => new ExportService($c->get(NoticeRepository::class)));
     }
 }

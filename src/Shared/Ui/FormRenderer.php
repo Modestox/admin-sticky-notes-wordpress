@@ -19,6 +19,7 @@ use Modestox\ConfigProcessorWp\Admin\Ui\Common\Field\Select;
 use Modestox\ConfigProcessorWp\Admin\Ui\Common\Field\MultiSelect;
 use Modestox\ConfigProcessorWp\Admin\Ui\Common\Field\Number;
 use Modestox\ConfigProcessorWp\Admin\Ui\Common\Field\DateTime;
+use Modestox\ConfigProcessorWp\Admin\Ui\Common\Field\DynamicRows;
 
 /**
  * Universal layout factory engine bridging abstract definitions with external decoupled UI Kit fields.
@@ -119,6 +120,13 @@ final readonly class FormRenderer
                 $fieldData['options'] = $formattedOptions;
 
                 $fieldUi = new MultiSelect();
+                $fieldUi->render($field->id, $fieldData);
+                break;
+
+            case 'dynamic_rows':
+                $fieldData['columns'] = $field->customMeta['columns'] ?? [];
+
+                $fieldUi = new DynamicRows();
                 $fieldUi->render($field->id, $fieldData);
                 break;
 

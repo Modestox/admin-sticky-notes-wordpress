@@ -36,26 +36,85 @@ final readonly class NoticeFormDefinition
             $groupOptions[] = new FieldOption((string)$id, $title);
         }
 
+        $priorityOptions = [];
+        foreach (self::getPriorityPairs() as $code => $title) {
+            $priorityOptions[] = new FieldOption((string)$code, $title);
+        }
+
+        $statusOptions = [];
+        foreach (self::getStatusPairs() as $code => $title) {
+            $statusOptions[] = new FieldOption((string)$code, $title);
+        }
+
         return [
             Field::text('title', __('Notice Title', 'modestox-admin-sticky-notes'), true),
             Field::textarea('message', __('Notice Content / Message', 'modestox-admin-sticky-notes'), true),
             Field::multiselect('groupId', __('Target Groups', 'modestox-admin-sticky-notes'), $groupOptions, true),
 
-            Field::select('priority', __('Urgency Priority', 'modestox-admin-sticky-notes'), [
-                new FieldOption('low', __('Low Importance', 'modestox-admin-sticky-notes')),
-                new FieldOption('normal', __('Regular Normal', 'modestox-admin-sticky-notes')),
-                new FieldOption('high', __('High Priority', 'modestox-admin-sticky-notes')),
-                new FieldOption('critical', __('Critical / Immediate Action', 'modestox-admin-sticky-notes')),
-            ], true),
-
-            Field::select('status', __('Lifecycle Status', 'modestox-admin-sticky-notes'), [
-                new FieldOption('draft', __('Draft (Hidden)', 'modestox-admin-sticky-notes')),
-                new FieldOption('publish', __('Published (Active)', 'modestox-admin-sticky-notes')),
-                new FieldOption('archived', __('Archived', 'modestox-admin-sticky-notes')),
-            ], true),
+            Field::select('priority', __('Urgency Priority', 'modestox-admin-sticky-notes'), $priorityOptions, true),
+            Field::select('status', __('Lifecycle Status', 'modestox-admin-sticky-notes'), $statusOptions, true),
 
             Field::datetime('startDate', __('Execution Start Date', 'modestox-admin-sticky-notes'), true),
             Field::datetime('endDate', __('Execution End Date', 'modestox-admin-sticky-notes'), true),
         ];
+    }
+
+    /**
+     * Returns dynamic options map for statuses built from Config Settings.
+     *
+     * @return array<string, string>
+     */
+    public static function getStatusPairs(): array
+    {
+        $configValue = get_option('modestox_adminstickynotes_general_notes_status');
+        $rows = is_array($configValue) ? $configValue : (array) maybe_unserialize($configValue);
+
+        if (empty($rows)) {
+            return [
+                'draft'    => 'Draft (Hidden)',
+                'publish'  => 'Published (Active)',
+                'archived' => 'Archived',
+            ];
+        }
+
+        $pairs = [];
+        foreach ($rows as $row) {
+            if (is_array($row) && isset($row['code'], $row['title']) && trim((string)$row['code']) !== '') {
+                $cleanKey = (string)$row['code'];
+                $pairs[sanitize_key($cleanKey)] = esc_html((string)$row['title']);
+            }
+        }
+
+        return $pairs;
+    }
+
+    /**
+     * Returns dynamic options map for priorities built from Config Settings.
+     *
+     * @return array<string, string>
+     */
+    public static function getPriorityPairs(): array
+    {
+        $configValue = get_option('modestox_adminstickynotes_general_notes_priority');
+        $rows = is_array($configValue) ? $configValue : (array) maybe_unserialize($configValue);
+
+        if (empty($rows)) {
+            return [
+                'low'      => 'Low',
+                'normal'   => 'Normal',
+                'high'     => 'High',
+                'critical' => 'Critical',
+            ];
+        }
+
+        $pairs = [];
+        foreach ($rows as $row) {
+            if (is_array($row) && isset($row['code'], $row['title']) && trim((string)$row['code']) !== '') {
+                $cleanKey = (string)$row['code'];
+                $pairs[sanitize_key($cleanKey)] = esc_html((string)$row['title']);
+            }
+        }
+
+        return $pairs;
     }
 }

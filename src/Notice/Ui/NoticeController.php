@@ -30,7 +30,7 @@ final class NoticeController extends AbstractCrudController
      */
     public function __construct(
         private NoticeRepository $repository,
-        private GroupRepository $groupRepository, // Now strictly expects the domain version
+        private GroupRepository $groupRepository,
     ) {}
 
     /**
@@ -52,6 +52,20 @@ final class NoticeController extends AbstractCrudController
             default     => 'id',
         };
 
+        $filters = [];
+        if (!empty($_GET['filter_status'])) {
+            $filters['status'] = sanitize_key($_GET['filter_status']);
+        }
+        if (!empty($_GET['filter_priority'])) {
+            $filters['priority'] = sanitize_key($_GET['filter_priority']);
+        }
+        if (isset($_GET['filter_group']) && $_GET['filter_group'] !== '') {
+            $filters['group'] = sanitize_text_field($_GET['filter_group']);
+        }
+        if (!empty($_GET['filter_search'])) {
+            $filters['search'] = sanitize_text_field($_GET['filter_search']);
+        }
+
         $configKey = 'modestox_adminstickynotes_general_grid_page_limit';
         $perPage = (int)get_option($configKey, 10);
 
@@ -62,8 +76,8 @@ final class NoticeController extends AbstractCrudController
         $currentPage = isset($_GET['paged']) ? max(1, (int)$_GET['paged']) : 1;
         $offset = ($currentPage - 1) * $perPage;
 
-        $totalItems = $this->repository->countAll();
-        $notices = $this->repository->findAll($dbOrderBy, $direction, $perPage, $offset);
+        $totalItems = $this->repository->countAll($filters);
+        $notices = $this->repository->findAll($dbOrderBy, $direction, $perPage, $offset, $filters);
         $groupsLookup = $this->groupRepository->getLookupPairs();
 
         $gridData = array_map(static function (Notice $notice) use ($groupsLookup) {
@@ -106,7 +120,16 @@ final class NoticeController extends AbstractCrudController
             ];
         }, $notices);
 
-        $renderer = new GridRenderer($gridDefinition->getColumns(), $gridData, $totalItems, $perPage);
+        $renderer = new GridRenderer(
+            $gridDefinition->getColumns(),
+            $gridData,
+            $totalItems,
+            $perPage,
+            $groupsLookup,
+            NoticeFormDefinition::getStatusPairs(),
+            NoticeFormDefinition::getPriorityPairs(),
+        );
+
         $renderer->prepare_items();
 
         echo '<div class="wrap">';
@@ -114,11 +137,16 @@ final class NoticeController extends AbstractCrudController
         echo sprintf(
             '<a href="?page=%s&action=new" class="page-title-action">%s</a>',
             esc_attr($_GET['page'] ?? ''),
-            esc_html__('Add New', 'modestox-admin-sticky-notes'),
+            esc_html__('Add New Notice', 'modestox-admin-sticky-notes'),
         );
         echo '<hr class="wp-header-end">';
 
+        echo sprintf('<form method="get" action="%s">', esc_url(admin_url('admin.php')));
+        echo sprintf('<input type="hidden" name="page" value="%s" />', esc_attr($_GET['page'] ?? ''));
+
         $renderer->display();
+
+        echo '</form>';
         echo '</div>';
     }
 
