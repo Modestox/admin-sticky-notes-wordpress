@@ -13,7 +13,11 @@ declare(strict_types=1);
 namespace Modestox\AdminStickyNotes\Infrastructure\Container;
 
 use Modestox\AdminStickyNotes\Infrastructure\Container;
-use Modestox\AdminStickyNotes\Notice\Ui\NoticeController;
+use Modestox\AdminStickyNotes\Notice\Admin\Controller as NoticeController;
+use Modestox\AdminStickyNotes\Notice\Admin\Action\ListAction;
+use Modestox\AdminStickyNotes\Notice\Admin\Action\FormAction;
+use Modestox\AdminStickyNotes\Notice\Admin\Action\SaveAction;
+use Modestox\AdminStickyNotes\Notice\Admin\Action\DeleteAction;
 use Modestox\AdminStickyNotes\Notice\Repository\NoticeRepository;
 use Modestox\AdminStickyNotes\Group\Repository\GroupRepository;
 
@@ -27,11 +31,34 @@ final class ControllerDefinitions implements ContainerDefinitionInterface
      */
     public static function register(Container $container): void
     {
+        // 1. Регистрируем Single Actions в контейнере фабрик
+        $container->set(
+            ListAction::class,
+            static fn(Container $c): ListAction => new ListAction($c->get(NoticeRepository::class), $c->get(GroupRepository::class)),
+        );
+
+        $container->set(
+            FormAction::class,
+            static fn(Container $c): FormAction => new FormAction($c->get(NoticeRepository::class), $c->get(GroupRepository::class)),
+        );
+
+        $container->set(
+            SaveAction::class,
+            static fn(Container $c): SaveAction => new SaveAction($c->get(NoticeRepository::class)),
+        );
+
+        $container->set(
+            DeleteAction::class,
+            static fn(Container $c): DeleteAction => new DeleteAction($c->get(NoticeRepository::class)),
+        );
+
         $container->set(
             NoticeController::class,
             static fn(Container $c): NoticeController => new NoticeController(
-                $c->get(NoticeRepository::class),
-                $c->get(GroupRepository::class),
+                $c->get(ListAction::class),
+                $c->get(FormAction::class),
+                $c->get(SaveAction::class),
+                $c->get(DeleteAction::class),
             ),
         );
     }

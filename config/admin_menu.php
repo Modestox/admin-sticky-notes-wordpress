@@ -17,7 +17,7 @@ return [
         'menu_slug'  => 'modestox-admin-sticky-notes',
         'icon_url'   => 'dashicons-admin-post',
         'position'   => 30,
-        'controller' => \Modestox\AdminStickyNotes\Notice\Ui\NoticeController::class,
+        'controller' => \Modestox\AdminStickyNotes\Notice\Admin\Controller::class,
     ],
     'submenus' => [
         [
@@ -26,7 +26,7 @@ return [
             'capability' => 'manage_options',
             'menu_slug'  => 'modestox-admin-sticky-notes',
             'action'     => 'list',
-            'controller' => \Modestox\AdminStickyNotes\Notice\Ui\NoticeController::class,
+            'controller' => \Modestox\AdminStickyNotes\Notice\Admin\Controller::class,
         ],
         [
             'page_title' => __('Create New Administrative Notice', 'modestox-admin-sticky-notes'),
@@ -34,7 +34,7 @@ return [
             'capability' => 'manage_options',
             'menu_slug'  => 'modestox-notices-new',
             'action'     => 'new',
-            'controller' => \Modestox\AdminStickyNotes\Notice\Ui\NoticeController::class,
+            'controller' => \Modestox\AdminStickyNotes\Notice\Admin\Controller::class,
         ],
     ],
 ];

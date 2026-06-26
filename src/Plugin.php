@@ -16,7 +16,7 @@ use Modestox\AdminStickyNotes\Config\AdminMenuRegistry;
 use Modestox\AdminStickyNotes\Config\ConfigLoader;
 use Modestox\AdminStickyNotes\Exception\Handler\PluginErrorHandler;
 use Modestox\AdminStickyNotes\Infrastructure\Wordpress\AdminSubscriber;
-use Modestox\AdminStickyNotes\Service\I18nService;
+use Modestox\AdminStickyNotes\Infrastructure\Wordpress\I18nService;
 use Modestox\AdminStickyNotes\Infrastructure\Database\Installer;
 use Modestox\AdminStickyNotes\Infrastructure\Container;
 use Modestox\AdminStickyNotes\Infrastructure\ContainerConfigurator;

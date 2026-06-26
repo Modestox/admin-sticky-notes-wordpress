@@ -10,7 +10,7 @@
 
 declare(strict_types=1);
 
-namespace Modestox\AdminStickyNotes\Service;
+namespace Modestox\AdminStickyNotes\Infrastructure\Wordpress;
 
 /**
  * Infrastructure service responsible for initializing and loading
@@ -23,7 +23,7 @@ final readonly class I18nService
      */
     public function loadTextdomain(): void
     {
-        $pluginBaseDir = dirname(__DIR__, 2);
+        $pluginBaseDir = dirname(__DIR__, 3);
 
         load_plugin_textdomain(
             'modestox-admin-sticky-notes',
