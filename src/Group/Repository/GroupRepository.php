@@ -12,17 +12,21 @@ declare(strict_types=1);
 
 namespace Modestox\AdminStickyNotes\Group\Repository;
 
+use Modestox\AdminStickyNotes\Shared\Database\AbstractRepository;
+
 /**
  * Handles persistent database operations for Sticky Note Groups.
+ *
+ * @extends AbstractRepository<\stdClass>
  */
-final readonly class GroupRepository
+final readonly class GroupRepository extends AbstractRepository
 {
-    private string $tableName;
-
-    public function __construct()
+    /**
+     * @inheritDoc
+     */
+    protected function getTableNameKeyword(): string
     {
-        global $wpdb;
-        $this->tableName = $wpdb->prefix . 'modestox_sticky_note_groups';
+        return 'modestox_sticky_note_groups';
     }
 
     /**
@@ -49,5 +53,35 @@ final readonly class GroupRepository
         }
 
         return $pairs;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function hydrate(array $data): \stdClass
+    {
+        $entity = new \stdClass();
+        $entity->id = isset($data['id']) ? (int)$data['id'] : null;
+        $entity->slug = (string)$data['slug'];
+        $entity->title = (string)$data['title'];
+        $entity->allowedRoles = (string)$data['allowed_roles'];
+        $entity->sortOrder = (int)$data['sort_order'];
+        $entity->createdAt = (string)$data['created_at'];
+
+        return $entity;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function extract(object $entity): array
+    {
+        return [
+            'slug'          => $entity->slug,
+            'title'         => $entity->title,
+            'allowed_roles' => $entity->allowedRoles,
+            'sort_order'    => $entity->sortOrder,
+            'created_at'    => $entity->createdAt,
+        ];
     }
 }

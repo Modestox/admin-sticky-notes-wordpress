@@ -12,19 +12,33 @@ declare(strict_types=1);
 
 namespace Modestox\AdminStickyNotes\Notice\Repository;
 
+use Modestox\AdminStickyNotes\Shared\Database\AbstractRepository;
+use Modestox\AdminStickyNotes\Shared\Database\QueryBuilder;
 use Modestox\AdminStickyNotes\Notice\Domain\Notice;
+use Modestox\AdminStickyNotes\Shared\Helper\DateFactory;
 
 /**
  * Handles persistent database operations for Administrative Notices.
+ *
+ * @extends AbstractRepository<Notice>
  */
-final readonly class NoticeRepository
+final readonly class NoticeRepository extends AbstractRepository
 {
-    private string $tableName;
+    /**
+     * Dependency injection handled via constructor property promotion extending baseline configuration.
+     */
+    public function __construct(
+        private DateFactory $dateFactory,
+    ) {
+        parent::__construct();
+    }
 
-    public function __construct()
+    /**
+     * @inheritDoc
+     */
+    protected function getTableNameKeyword(): string
     {
-        global $wpdb;
-        $this->tableName = $wpdb->prefix . 'modestox_sticky_notes';
+        return 'modestox_sticky_notes';
     }
 
     /**
@@ -34,7 +48,7 @@ final readonly class NoticeRepository
      * @param string $direction Sort order direction (ASC|DESC).
      * @param int $limit Maximum number of records to return.
      * @param int $offset Number of records to skip.
-     * @param array{status?: string, priority?: string} $filters SQL constraints filters.
+     * @param array{status?: string, priority?: string, group?: string, search?: string} $filters SQL constraints filters.
      * @return array<int, Notice>
      */
     public function findAll(string $orderBy = 'id', string $direction = 'DESC', int $limit = 20, int $offset = 0, array $filters = []): array
@@ -42,45 +56,24 @@ final readonly class NoticeRepository
         global $wpdb;
 
         $allowedColumns = ['id', 'title', 'status', 'priority', 'start_date', 'end_date'];
-        if (!in_array($orderBy, $allowedColumns, true)) {
-            $orderBy = 'id';
+        $groupFilter = isset($filters['group']) ? (int)$filters['group'] : null;
+
+        $query = (new QueryBuilder($this->tableName))
+            ->equal('status', $filters['status'] ?? null)
+            ->equal('priority', $filters['priority'] ?? null);
+
+        if ($groupFilter === 0) {
+            $query->equal('group_id', '0');
+        } elseif ($groupFilter > 0) {
+            $query->likeSerializedId('group_id', $groupFilter);
         }
 
-        $direction = strtoupper($direction) === 'ASC' ? 'ASC' : 'DESC';
+        $query->generalSearch(['title', 'content'], $filters['search'] ?? null)
+            ->order($orderBy, $direction, $allowedColumns)
+            ->limit($limit)
+            ->offset($offset);
 
-        $whereClauses = ['1=1'];
-
-        if (!empty($filters['status'])) {
-            $whereClauses[] = $wpdb->prepare("status = %s", $filters['status']);
-        }
-        if (!empty($filters['priority'])) {
-            $whereClauses[] = $wpdb->prepare("priority = %s", $filters['priority']);
-        }
-
-        if (isset($filters['group']) && $filters['group'] !== '') {
-            $groupVal = (int)$filters['group'];
-            $likePattern = '%' . $wpdb->esc_like(sprintf(':%d;', $groupVal)) . '%';
-            $whereClauses[] = $wpdb->prepare("group_id LIKE %s", $likePattern);
-        }
-
-        if (!empty($filters['search'])) {
-            $searchPattern = '%' . $wpdb->esc_like($filters['search']) . '%';
-            $whereClauses[] = $wpdb->prepare("(title LIKE %s OR content LIKE %s)", $searchPattern, $searchPattern);
-        }
-
-        $whereSql = implode(' AND ', $whereClauses);
-
-        $sql = sprintf(
-            "SELECT * FROM %s WHERE %s ORDER BY %s %s LIMIT %d OFFSET %d",
-            $this->tableName,
-            $whereSql,
-            $orderBy,
-            $direction,
-            $limit,
-            $offset
-        );
-
-        $rows = $wpdb->get_results($sql, ARRAY_A);
+        $rows = $wpdb->get_results($query->getSelectSql(), ARRAY_A);
 
         if (!is_array($rows)) {
             return [];
@@ -92,102 +85,36 @@ final readonly class NoticeRepository
     /**
      * Returns the total count of filtered rows inside the database table.
      *
-     * @param array{status?: string, priority?: string} $filters SQL constraints filters.
+     * @param array{status?: string, priority?: string, group?: string, search?: string} $filters SQL constraints filters.
      * @return int
      */
     public function countAll(array $filters = []): int
     {
         global $wpdb;
 
-        $whereClauses = ['1=1'];
+        $groupFilter = isset($filters['group']) ? (int)$filters['group'] : null;
 
-        if (!empty($filters['status'])) {
-            $whereClauses[] = $wpdb->prepare("status = %s", $filters['status']);
-        }
-        if (!empty($filters['priority'])) {
-            $whereClauses[] = $wpdb->prepare("priority = %s", $filters['priority']);
-        }
+        $query = (new QueryBuilder($this->tableName))
+            ->equal('status', $filters['status'] ?? null)
+            ->equal('priority', $filters['priority'] ?? null);
 
-        if (isset($filters['group']) && $filters['group'] !== '') {
-            $groupVal = (int)$filters['group'];
-            // Ищем подстроку вида i:0;i:1; или s:1:"1"; внутри сериализованного массива
-            $likePattern = '%' . $wpdb->esc_like(sprintf(':%d;', $groupVal)) . '%';
-            $whereClauses[] = $wpdb->prepare("group_id LIKE %s", $likePattern);
+        if ($groupFilter === 0) {
+            $query->equal('group_id', '0');
+        } elseif ($groupFilter > 0) {
+            $query->likeSerializedId('group_id', $groupFilter);
         }
 
-        if (!empty($filters['search'])) {
-            $searchPattern = '%' . $wpdb->esc_like($filters['search']) . '%';
-            $whereClauses[] = $wpdb->prepare("(title LIKE %s OR content LIKE %s)", $searchPattern, $searchPattern);
-        }
+        $query->generalSearch(['title', 'content'], $filters['search'] ?? null);
 
-        $whereSql = implode(' AND ', $whereClauses);
-
-        return (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->tableName} WHERE {$whereSql}");
+        return (int)$wpdb->get_var($query->getCountSql());
     }
 
     /**
-     * Fetches a single notice entry by its primary key identifier.
+     * @inheritDoc
+     * @return Notice
      */
-    public function findById(int $id): ?Notice
+    public function hydrate(array $data): Notice
     {
-        global $wpdb;
-
-        $row = $wpdb->get_row(
-            $wpdb->prepare("SELECT * FROM {$this->tableName} WHERE id = %d", $id),
-            ARRAY_A
-        );
-
-        if (!$row) {
-            return null;
-        }
-
-        return $this->hydrate($row);
-    }
-
-    /**
-     * Persists or updates a notice entity inside database engine storage.
-     */
-    public function save(Notice $notice): void
-    {
-        global $wpdb;
-
-        $data = [
-            'group_id'       => $notice->groupId,
-            'user_id'        => $notice->userId,
-            'target_user_id' => $notice->targetUserId,
-            'title'          => $notice->title,
-            'content'        => $notice->message,
-            'status'         => $notice->status,
-            'priority'       => $notice->priority,
-            'start_date'     => $notice->startDate?->format('Y-m-d H:i:s'),
-            'end_date'       => $notice->endDate?->format('Y-m-d H:i:s'),
-            'updated_at'     => $notice->updatedAt->format('Y-m-d H:i:s'),
-        ];
-
-        if ($notice->id === null) {
-            $data['created_at'] = $notice->createdAt->format('Y-m-d H:i:s');
-            $wpdb->insert($this->tableName, $data);
-        } else {
-            $wpdb->update($this->tableName, $data, ['id' => $notice->id]);
-        }
-    }
-
-    /**
-     * Deletes a single notice entity completely from storage.
-     */
-    public function delete(int $id): void
-    {
-        global $wpdb;
-        $wpdb->delete($this->tableName, ['id' => $id]);
-    }
-
-    /**
-     * Maps raw database array layout metadata structures to clean Domain DTO instances.
-     */
-    private function hydrate(array $data): Notice
-    {
-        $timezone = wp_timezone();
-
         return new Notice(
             id: isset($data['id']) ? (int)$data['id'] : null,
             groupId: (string)($data['group_id'] ?? '0'),
@@ -197,10 +124,31 @@ final readonly class NoticeRepository
             message: (string)($data['content'] ?? ''),
             status: (string)($data['status'] ?? 'draft'),
             priority: (string)($data['priority'] ?? 'normal'),
-            startDate: !empty($data['start_date']) ? new \DateTimeImmutable($data['start_date'], $timezone) : null,
-            endDate: !empty($data['end_date']) ? new \DateTimeImmutable($data['end_date'], $timezone) : null,
-            createdAt: new \DateTimeImmutable($data['created_at'] ?? 'now', $timezone),
-            updatedAt: new \DateTimeImmutable($data['updated_at'] ?? 'now', $timezone),
+            startDate: !empty($data['start_date']) ? $this->dateFactory->create($data['start_date']) : null,
+            endDate: !empty($data['end_date']) ? $this->dateFactory->create($data['end_date']) : null,
+            createdAt: $this->dateFactory->create($data['created_at'] ?? 'now'),
+            updatedAt: $this->dateFactory->create($data['updated_at'] ?? 'now'),
         );
+    }
+
+    /**
+     * @inheritDoc
+     * @param Notice $entity
+     */
+    public function extract(object $entity): array
+    {
+        return [
+            'group_id'       => $entity->groupId,
+            'user_id'        => $entity->userId,
+            'target_user_id' => $entity->targetUserId,
+            'title'          => $entity->title,
+            'content'        => $entity->message,
+            'status'         => $entity->status,
+            'priority'       => $entity->priority,
+            'start_date'     => $entity->startDate?->format('Y-m-d H:i:s'),
+            'end_date'       => $entity->endDate?->format('Y-m-d H:i:s'),
+            'updated_at'     => $entity->updatedAt->format('Y-m-d H:i:s'),
+            'created_at'     => $entity->createdAt->format('Y-m-d H:i:s'),
+        ];
     }
 }

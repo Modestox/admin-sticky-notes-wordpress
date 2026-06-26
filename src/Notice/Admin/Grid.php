@@ -12,29 +12,37 @@ declare(strict_types=1);
 
 namespace Modestox\AdminStickyNotes\Notice\Admin;
 
+use Modestox\AdminStickyNotes\Shared\Ui\Component\AbstractGrid;
 use Modestox\AdminStickyNotes\Shared\Ui\Component\Column;
 
 /**
- * Declarative single source of truth grid structural layout layout definition for Notices.
+ * Declarative administrative data grid structural configuration blueprint for Notices.
  */
-final readonly class Grid
+final readonly class Grid extends AbstractGrid
 {
     /**
-     * Compiles and returns the schema column mapping definitions with full i18n support.
-     *
-     * @return array<int, Column>
+     * @inheritDoc
      */
-    public function getColumns(): array
+    public function getTitle(): string
+    {
+        return __('Admin Notices Pool', 'modestox-admin-sticky-notes');
+    }
+
+    /**
+     * @inheritDoc
+     */
+    protected function defineColumns(): array
     {
         return [
-            Column::text('title', __('Title', 'modestox-admin-sticky-notes'), true),
-            Column::text('groupName', __('Group', 'modestox-admin-sticky-notes'), false),
-            Column::text('targetUser', __('Target User', 'modestox-admin-sticky-notes'), true),
-            Column::badge('status', __('Status', 'modestox-admin-sticky-notes'), true),
-            Column::badge('priority', __('Priority', 'modestox-admin-sticky-notes'), true),
-            Column::datetime('startDate', __('Start Date', 'modestox-admin-sticky-notes'), true),
-            Column::datetime('endDate', __('End Date', 'modestox-admin-sticky-notes'), true),
-            Column::text('actions', __('Actions', 'modestox-admin-sticky-notes'), false),
+            new Column('id', __('ID', 'modestox-admin-sticky-notes'), true),
+            new Column('title', __('Title', 'modestox-admin-sticky-notes'), true),
+            new Column('groupName', __('Target Group', 'modestox-admin-sticky-notes')),
+            new Column('targetUser', __('Target User', 'modestox-admin-sticky-notes')),
+            new Column('status', __('Status', 'modestox-admin-sticky-notes'), true, 'badge'),
+            new Column('priority', __('Priority', 'modestox-admin-sticky-notes'), true, 'badge'),
+            new Column('startDate', __('Start Date', 'modestox-admin-sticky-notes'), true, 'datetime'),
+            new Column('endDate', __('End Date', 'modestox-admin-sticky-notes'), true, 'datetime'),
+            new Column('actions', __('Actions', 'modestox-admin-sticky-notes')),
         ];
     }
 }

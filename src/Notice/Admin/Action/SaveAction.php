@@ -10,94 +10,102 @@
 
 declare(strict_types=1);
 
-namespace Modestox\AdminStickyNotes\Notice\Admin;
-
 namespace Modestox\AdminStickyNotes\Notice\Admin\Action;
 
+use Modestox\AdminStickyNotes\Shared\Crud\Action\AbstractSaveAction;
 use Modestox\AdminStickyNotes\Notice\Repository\NoticeRepository;
+use Modestox\AdminStickyNotes\Notice\Service\NoticeService;
 use Modestox\AdminStickyNotes\Notice\Domain\Notice;
+use Modestox\AdminStickyNotes\Shared\Helper\DateFactory;
 
 /**
- * Single Action Controller processing and persisting payload updates inside database.
+ * Administrative action managing secure assembly and persistence of structural Notice payloads.
  */
-final readonly class SaveAction
+final readonly class SaveAction extends AbstractSaveAction
 {
     /**
-     * Dependency Injection handled via constructor property promotion.
+     * Injected components wired strictly via PHP 8.3 constructor property promotion.
      */
     public function __construct(
         private NoticeRepository $repository,
+        private NoticeService $noticeService,
+        private DateFactory $dateFactory,
     ) {}
 
     /**
-     * Intercepts POST updates, processes tokens, and triggers mutations on repositories.
+     * @inheritDoc
      */
-    public function execute(): void
+    protected function loadExistingEntity(?int $id): ?Notice
     {
-        if (!isset($_POST['modestox_nonce']) || !wp_verify_nonce($_POST['modestox_nonce'], 'save_notice_action')) {
-            wp_die(esc_html__('Security execution verification failed.', 'modestox-admin-sticky-notes'));
+        if ($id === null) {
+            return null;
+        }
+        return $this->repository->findById($id);
+    }
+
+    /**
+     * @inheritDoc
+     * @param Notice $entity
+     */
+    protected function persist(object $entity): void
+    {
+        try {
+            $this->noticeService->save($entity);
+        } catch (\InvalidArgumentException $e) {
+            wp_die(esc_html($e->getMessage()));
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getNonceActionName(): string
+    {
+        return 'save_notice_action';
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getNonceFieldName(): string
+    {
+        return 'modestox_nonce';
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getRedirectUrl(): string
+    {
+        return sprintf('admin.php?page=%s', sanitize_key($_GET['page'] ?? ''));
+    }
+
+    /**
+     * @inheritDoc
+     * @param Notice|null $existingEntity
+     * @return Notice
+     */
+    public function buildEntityFromRequest(array $requestData, ?object $existingEntity): Notice
+    {
+        $groupRaw = $requestData['groupId'] ?? [0];
+        $groupIds = is_array($groupRaw) ? array_map('intval', $groupRaw) : [0];
+        if (empty($groupIds)) {
+            $groupIds = [0];
         }
 
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
-        $timezone = wp_timezone();
-        $now = new \DateTimeImmutable('now', $timezone);
-
-        $startDateRaw = sanitize_text_field($_POST['startDate'] ?? '');
-        $endDateRaw = sanitize_text_field($_POST['endDate'] ?? '');
-
-        $startDate = null;
-        $endDate = null;
-
-        if (!empty($startDateRaw)) {
-            try {
-                $startDate = new \DateTimeImmutable($startDateRaw, $timezone);
-            } catch (\DateMalformedStringException $e) {
-                $startDate = null;
-            }
-        }
-
-        if (!empty($endDateRaw)) {
-            try {
-                $endDate = new \DateTimeImmutable($endDateRaw, $timezone);
-            } catch (\DateMalformedStringException $e) {
-                $endDate = null;
-            }
-        }
-
-        $createdAt = $now;
-        if ($id !== null) {
-            $existingNotice = $this->repository->findById($id);
-            if ($existingNotice) {
-                $createdAt = $existingNotice->createdAt;
-            }
-        }
-
-        $postedGroups = $_POST['groupId'] ?? [];
-
-        if (in_array('0', $postedGroups, true)) {
-            $groupIdsArray = [0];
-        } else {
-            $groupIdsArray = array_map('intval', $postedGroups);
-        }
-
-        $noticeDto = new Notice(
-            id: $id,
-            groupId: maybe_serialize($groupIdsArray),
-            userId: get_current_user_id(),
-            targetUserId: isset($_POST['targetUserId']) ? (int)$_POST['targetUserId'] : 0,
-            title: sanitize_text_field($_POST['title'] ?? ''),
-            message: sanitize_textarea_field($_POST['message'] ?? ''),
-            status: sanitize_key($_POST['status'] ?? 'draft'),
-            priority: sanitize_key($_POST['priority'] ?? 'normal'),
-            startDate: $startDate,
-            endDate: $endDate,
-            createdAt: $createdAt,
-            updatedAt: $now,
+        return new Notice(
+            id: $existingEntity?->id,
+            groupId: maybe_serialize($groupIds),
+            userId: $existingEntity?->userId ?? (int)get_current_user_id(),
+            targetUserId: isset($requestData['targetUserId']) ? (int)$requestData['targetUserId'] : 0,
+            title: isset($requestData['title']) ? sanitize_text_field($requestData['title']) : '',
+            message: isset($requestData['message']) ? wp_kses_post($requestData['message']) : '',
+            status: isset($requestData['status']) ? sanitize_key($requestData['status']) : 'draft',
+            priority: isset($requestData['priority']) ? sanitize_key($requestData['priority']) : 'normal',
+            startDate: !empty($requestData['startDate']) ? $this->dateFactory->create($requestData['startDate']) : null,
+            endDate: !empty($requestData['endDate']) ? $this->dateFactory->create($requestData['endDate']) : null,
+            createdAt: $existingEntity?->createdAt ?? $this->dateFactory->create('now'),
+            updatedAt: $this->dateFactory->create('now'),
         );
-
-        $this->repository->save($noticeDto);
-
-        wp_redirect(admin_url('admin.php?page=modestox-admin-sticky-notes'));
-        exit;
     }
 }

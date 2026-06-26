@@ -12,23 +12,25 @@ declare(strict_types=1);
 
 namespace Modestox\AdminStickyNotes\Notice\Admin;
 
+use Modestox\AdminStickyNotes\Shared\Ui\Component\AbstractForm;
 use Modestox\AdminStickyNotes\Shared\Ui\Component\Field;
 use Modestox\AdminStickyNotes\Shared\Ui\Component\FieldOption;
 
 /**
  * Declarative single source of truth form structural layout metadata definition for Notices.
  */
-final readonly class Form
+final readonly class Form extends AbstractForm
 {
     /**
-     * Compiles and returns the schema layout fields configuration with full i18n support.
-     *
-     * @param array<int, string> $groupPairs Dynamically injected lookup pairs from the database.
-     * @param array<int, string> $userPairs Dynamically injected lookup pairs of WordPress users.
+     * @inheritDoc
+     * @param array<int, string> ...$context Expects $groupPairs as index 0 and $userPairs as index 1.
      * @return array<int, Field>
      */
-    public function getFields(array $groupPairs = [], array $userPairs = []): array
+    public function getFields(array ...$context): array
     {
+        $groupPairs = $context[0] ?? [];
+        $userPairs = $context[1] ?? [];
+
         $groupOptions = [
             new FieldOption('0', __('— All Groups —', 'modestox-admin-sticky-notes')),
         ];

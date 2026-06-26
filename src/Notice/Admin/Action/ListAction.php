@@ -12,8 +12,12 @@ declare(strict_types=1);
 
 namespace Modestox\AdminStickyNotes\Notice\Admin\Action;
 
+use Modestox\AdminStickyNotes\Shared\Crud\Action\AbstractListAction;
 use Modestox\AdminStickyNotes\Notice\Repository\NoticeRepository;
 use Modestox\AdminStickyNotes\Group\Repository\GroupRepository;
+use Modestox\AdminStickyNotes\Infrastructure\Wordpress\WpUserDirectory;
+use Modestox\AdminStickyNotes\Shared\Ui\Component\FilterBuilder;
+use Modestox\AdminStickyNotes\Shared\Ui\Component\AbstractGrid;
 use Modestox\AdminStickyNotes\Notice\Admin\Grid;
 use Modestox\AdminStickyNotes\Notice\Admin\Form;
 use Modestox\AdminStickyNotes\Notice\Domain\Notice;
@@ -22,27 +26,56 @@ use Modestox\AdminStickyNotes\Shared\Ui\GridRenderer;
 /**
  * Single Action Controller responsible exclusively for fetching and rendering the notices grid.
  */
-final readonly class ListAction
+final readonly class ListAction extends AbstractListAction
 {
     /**
-     * Dependency Injection handled via constructor property promotion.
+     * Injected components wired strictly via PHP 8.3 constructor property promotion.
      */
     public function __construct(
         private NoticeRepository $repository,
         private GroupRepository $groupRepository,
+        private WpUserDirectory $wpUserDirectory,
     ) {}
 
     /**
-     * Compiles grid metadata definitions and flushes standard system list views.
+     * @inheritDoc
      */
-    public function execute(): void
+    protected function getTotalItemsCount(array $filters): int
     {
-        $gridDefinition = new Grid();
+        return $this->repository->countAll($filters);
+    }
 
-        $orderBy = isset($_GET['orderby']) ? sanitize_key($_GET['orderby']) : 'id';
-        $direction = isset($_GET['order']) && strtoupper($_GET['order']) === 'ASC' ? 'ASC' : 'DESC';
+    /**
+     * @inheritDoc
+     * @return array<int, Notice>
+     */
+    protected function loadEntities(string $orderBy, string $direction, int $perPage, int $offset, array $filters): array
+    {
+        return $this->repository->findAll($orderBy, $direction, $perPage, $offset, $filters);
+    }
 
-        $dbOrderBy = match ($orderBy) {
+    /**
+     * @inheritDoc
+     */
+    public function getGridDefinition(): AbstractGrid
+    {
+        return new Grid();
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getAddNewLabel(): string
+    {
+        return __('Add New Notice', 'modestox-admin-sticky-notes');
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function mapOrderByField(string $orderBy): string
+    {
+        return match ($orderBy) {
             'title'     => 'title',
             'status'    => 'status',
             'priority'  => 'priority',
@@ -50,37 +83,30 @@ final readonly class ListAction
             'endDate'   => 'end_date',
             default     => 'id',
         };
+    }
 
-        $filters = [];
-        if (!empty($_GET['filter_status'])) {
-            $filters['status'] = sanitize_key($_GET['filter_status']);
-        }
-        if (!empty($_GET['filter_priority'])) {
-            $filters['priority'] = sanitize_key($_GET['filter_priority']);
-        }
-        if (isset($_GET['filter_group']) && $_GET['filter_group'] !== '') {
-            $filters['group'] = sanitize_text_field($_GET['filter_group']);
-        }
-        if (!empty($_GET['filter_search'])) {
-            $filters['search'] = sanitize_text_field($_GET['filter_search']);
-        }
+    /**
+     * @inheritDoc
+     */
+    public function configureFilters(FilterBuilder $builder): FilterBuilder
+    {
+        return $builder
+            ->key('filter_status', 'status')
+            ->key('filter_priority', 'priority')
+            ->integer('filter_group', 'group')
+            ->text('filter_search', 'search');
+    }
 
-        $configKey = 'modestox_adminstickynotes_general_grid_page_limit';
-        $perPage = (int)get_option($configKey, 10);
-
-        if ($perPage <= 0) {
-            $perPage = 10;
-        }
-
-        $currentPage = isset($_GET['paged']) ? max(1, (int)$_GET['paged']) : 1;
-        $offset = ($currentPage - 1) * $perPage;
-
-        $totalItems = $this->repository->countAll($filters);
-        $notices = $this->repository->findAll($dbOrderBy, $direction, $perPage, $offset, $filters);
+    /**
+     * @inheritDoc
+     * @param array<int, Notice> $entities
+     */
+    public function prepareGridRows(array $entities): array
+    {
         $groupsLookup = $this->groupRepository->getLookupPairs();
-        $usersLookup = $this->getWpUsersLookup();
+        $usersLookup = $this->wpUserDirectory->getLookupPairs();
 
-        $gridData = array_map(static function (Notice $notice) use ($groupsLookup, $usersLookup) {
+        return array_map(static function (Notice $notice) use ($groupsLookup, $usersLookup) {
             $assignedGroups = maybe_unserialize($notice->groupId);
 
             if (!is_array($assignedGroups) || in_array(0, $assignedGroups, true) || empty($assignedGroups)) {
@@ -123,65 +149,22 @@ final readonly class ListAction
                 'endDate'    => $notice->endDate,
                 'actions'    => $actionsHtml,
             ];
-        }, $notices);
+        }, $entities);
+    }
 
-        $renderer = new GridRenderer(
+    /**
+     * @inheritDoc
+     */
+    public function createGridRenderer(AbstractGrid $gridDefinition, array $gridData, int $totalItems, int $perPage): GridRenderer
+    {
+        return new GridRenderer(
             $gridDefinition->getColumns(),
             $gridData,
             $totalItems,
             $perPage,
-            $groupsLookup,
+            $this->groupRepository->getLookupPairs(),
             Form::getStatusPairs(),
             Form::getPriorityPairs(),
         );
-
-        $renderer->prepare_items();
-
-        echo '<div class="wrap">';
-        echo sprintf('<h1 class="wp-heading-inline">%s</h1>', esc_html__('Admin Notices Pool', 'modestox-admin-sticky-notes'));
-        echo sprintf(
-            '<a href="?page=%s&action=new" class="page-title-action">%s</a>',
-            esc_attr($_GET['page'] ?? ''),
-            esc_html__('Add New Notice', 'modestox-admin-sticky-notes'),
-        );
-        echo '<hr class="wp-header-end">';
-
-        echo sprintf('<form method="get" action="%s">', esc_url(admin_url('admin.php')));
-        echo sprintf('<input type="hidden" name="page" value="%s" />', esc_attr($_GET['page'] ?? ''));
-
-        $renderer->display();
-
-        echo '</form>';
-        echo '</div>';
-    }
-
-    /**
-     * Compiles maps of registered backend users linking internal id structures to display names.
-     *
-     * @return array<int, string>
-     */
-    private function getWpUsersLookup(): array
-    {
-        $users = get_users([
-            'fields' => ['ID', 'display_name'],
-            'number' => 500,
-        ]);
-
-        $lookup = [];
-
-        if (is_array($users) && !empty($users)) {
-            foreach ($users as $user) {
-                $lookup[(int)$user->ID] = (string)$user->display_name;
-            }
-        }
-
-        if (empty($lookup)) {
-            $currentUser = wp_get_current_user();
-            if ($currentUser->ID > 0) {
-                $lookup[(int)$currentUser->ID] = (string)$currentUser->display_name;
-            }
-        }
-
-        return $lookup;
     }
 }

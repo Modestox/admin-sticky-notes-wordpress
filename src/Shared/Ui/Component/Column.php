@@ -13,29 +13,17 @@ declare(strict_types=1);
 namespace Modestox\AdminStickyNotes\Shared\Ui\Component;
 
 /**
- * Metadata descriptor defining an isolated grid column behavior and rendering type.
+ * Immutable data value object representing a single grid column definition.
  */
 final readonly class Column
 {
-    private function __construct(
+    /**
+     * Property promotion constructor aligning strict types for PHP 8.3 named arguments.
+     */
+    public function __construct(
         public string $id,
         public string $label,
-        public string $type,
-        public bool $isSortable = false
+        public bool $isSortable = false,
+        public string $type = 'text',
     ) {}
-
-    public static function text(string $id, string $label, bool $isSortable = false): self
-    {
-        return new self($id, $label, 'text', $isSortable);
-    }
-
-    public static function badge(string $id, string $label, bool $isSortable = false): self
-    {
-        return new self($id, $label, 'badge', $isSortable);
-    }
-
-    public static function datetime(string $id, string $label, bool $isSortable = false): self
-    {
-        return new self($id, $label, 'datetime', $isSortable);
-    }
 }

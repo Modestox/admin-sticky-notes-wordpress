@@ -12,34 +12,46 @@ declare(strict_types=1);
 
 namespace Modestox\AdminStickyNotes\Notice\Admin\Action;
 
-use Modestox\AdminStickyNotes\Notice\Repository\NoticeRepository;
+use Modestox\AdminStickyNotes\Shared\Crud\Action\AbstractDeleteAction;
+use Modestox\AdminStickyNotes\Notice\Service\NoticeService;
 
 /**
- * Single Action Controller strictly isolating deletion mutations with token verification.
+ * Administrative action orchestrating safe removal of specific Notice records.
  */
-final readonly class DeleteAction
+final readonly class DeleteAction extends AbstractDeleteAction
 {
     /**
-     * Dependency Injection handled via constructor property promotion.
+     * Dependency Injection wires the domain service strictly via constructor property promotion.
      */
     public function __construct(
-        private NoticeRepository $repository,
+        private NoticeService $noticeService,
     ) {}
 
     /**
-     * Validates cryptographic tokens and deletes entity entries out of storage.
+     * @inheritDoc
      */
-    public function execute(): void
+    protected function performDelete(int $id): void
     {
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-
-        if (!wp_verify_nonce($_GET['_wpnonce'] ?? '', 'delete_notice_' . $id)) {
-            wp_die(esc_html__('Security execution verification failed.', 'modestox-admin-sticky-notes'));
+        try {
+            $this->noticeService->delete($id);
+        } catch (\LogicException $e) {
+            wp_die(esc_html($e->getMessage()));
         }
+    }
 
-        $this->repository->delete($id);
+    /**
+     * @inheritDoc
+     */
+    public function getNonceActionName(int $id): string
+    {
+        return 'delete_notice_' . $id;
+    }
 
-        wp_redirect(admin_url('admin.php?page=modestox-admin-sticky-notes'));
-        exit;
+    /**
+     * @inheritDoc
+     */
+    public function getRedirectUrl(): string
+    {
+        return sprintf('admin.php?page=%s', sanitize_key($_GET['page'] ?? ''));
     }
 }

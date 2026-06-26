@@ -12,113 +12,129 @@ declare(strict_types=1);
 
 namespace Modestox\AdminStickyNotes\Notice\Admin\Action;
 
+use Modestox\AdminStickyNotes\Shared\Crud\Action\AbstractFormAction;
 use Modestox\AdminStickyNotes\Notice\Repository\NoticeRepository;
 use Modestox\AdminStickyNotes\Group\Repository\GroupRepository;
+use Modestox\AdminStickyNotes\Infrastructure\Wordpress\WpUserDirectory;
+use Modestox\AdminStickyNotes\Shared\Ui\Component\AbstractForm;
+use Modestox\AdminStickyNotes\Shared\Ui\Component\Field;
 use Modestox\AdminStickyNotes\Notice\Admin\Form;
-use Modestox\AdminStickyNotes\Shared\Ui\FormRenderer;
+use Modestox\AdminStickyNotes\Notice\Domain\Notice;
 
 /**
  * Single Action Controller responsible exclusively for preparing and rendering the entity form.
  */
-final readonly class FormAction
+final readonly class FormAction extends AbstractFormAction
 {
     /**
-     * Dependency Injection handled via constructor property promotion.
+     * Injected components wired strictly via PHP 8.3 constructor property promotion.
      */
     public function __construct(
         private NoticeRepository $repository,
         private GroupRepository $groupRepository,
+        private WpUserDirectory $wpUserDirectory,
     ) {}
 
     /**
-     * Hydrates selected models and maps field configurations into standard form views.
+     * @inheritDoc
      */
-    public function execute(): void
+    protected function loadEntity(int $id): ?object
     {
-        $formDefinition = new Form();
-        $renderer = new FormRenderer();
-
-        $formData = [];
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
-
-        if ($id !== null) {
-            $notice = $this->repository->findById($id);
-            if ($notice) {
-                $savedGroups = maybe_unserialize($notice->groupId);
-
-                if (!is_array($savedGroups)) {
-                    $savedGroups = ['0'];
-                } else {
-                    $savedGroups = array_map('strval', $savedGroups);
-                }
-
-                $formData = [
-                    'title'        => $notice->title,
-                    'message'      => $notice->message,
-                    'groupId'      => $savedGroups,
-                    'targetUserId' => (string)$notice->targetUserId,
-                    'priority'     => $notice->priority,
-                    'status'       => $notice->status,
-                    'startDate'    => $notice->startDate?->format('Y-m-d\TH:i') ?? '',
-                    'endDate'      => $notice->endDate?->format('Y-m-d\TH:i') ?? '',
-                ];
-            }
-        }
-
-        $formActionUrl = admin_url(
-            sprintf(
-                'admin.php?page=%s&action=save%s',
-                sanitize_key($_GET['page'] ?? ''),
-                $id ? '&id=' . $id : '',
-            ),
-        );
-
-        $availableGroups = $this->groupRepository->getLookupPairs();
-        $availableUsers = $this->getWpUsersLookup();
-
-        echo '<div class="wrap">';
-        echo sprintf(
-            '<h1>%s</h1>',
-            $id ? esc_html__('Edit Notice', 'modestox-admin-sticky-notes') : esc_html__('Create Notice', 'modestox-admin-sticky-notes'),
-        );
-        echo sprintf('<form method="post" action="%s">', esc_url($formActionUrl));
-
-        wp_nonce_field('save_notice_action', 'modestox_nonce');
-
-        $renderer->render($formDefinition->getFields($availableGroups, $availableUsers), $formData);
-
-        submit_button($id ? __('Update', 'modestox-admin-sticky-notes') : __('Save', 'modestox-admin-sticky-notes'));
-        echo '</form>';
-        echo '</div>';
+        return $this->repository->findById($id);
     }
 
     /**
-     * Compiles maps of registered backend users linking internal id structures to display names.
-     *
-     * @return array<int, string>
+     * @inheritDoc
      */
-    private function getWpUsersLookup(): array
+    public function getFormDefinition(): AbstractForm
     {
-        $users = get_users([
-            'fields' => ['ID', 'display_name'],
-            'number' => 500,
-        ]);
+        return new Form();
+    }
 
-        $lookup = [];
+    /**
+     * @inheritDoc
+     * @param Form $formDefinition
+     * @return array<int, Field>
+     */
+    public function getFormFields(object $formDefinition): array
+    {
+        return $formDefinition->getFields(
+            $this->groupRepository->getLookupPairs(),
+            $this->wpUserDirectory->getLookupPairs()
+        );
+    }
 
-        if (is_array($users) && !empty($users)) {
-            foreach ($users as $user) {
-                $lookup[(int)$user->ID] = (string)$user->display_name;
-            }
+    /**
+     * @inheritDoc
+     * @param Notice $entity
+     */
+    public function mapEntityToFormData(object $entity): array
+    {
+        $savedGroups = maybe_unserialize($entity->groupId);
+
+        if (!is_array($savedGroups)) {
+            $savedGroups = ['0'];
+        } else {
+            $savedGroups = array_map('strval', $savedGroups);
         }
 
-        if (empty($lookup)) {
-            $currentUser = wp_get_current_user();
-            if ($currentUser->ID > 0) {
-                $lookup[(int)$currentUser->ID] = (string)$currentUser->display_name;
-            }
-        }
+        return [
+            'title'        => $entity->title,
+            'message'      => $entity->message,
+            'groupId'      => $savedGroups,
+            'targetUserId' => (string)$entity->targetUserId,
+            'priority'     => $entity->priority,
+            'status'       => $entity->status,
+            'startDate'    => $entity->startDate?->format('Y-m-d\TH:i') ?? '',
+            'endDate'      => $entity->endDate?->format('Y-m-d\TH:i') ?? '',
+        ];
+    }
 
-        return $lookup;
+    /**
+     * @inheritDoc
+     */
+    public function getEditTitle(): string
+    {
+        return __('Edit Notice', 'modestox-admin-sticky-notes');
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getCreateTitle(): string
+    {
+        return __('Create Notice', 'modestox-admin-sticky-notes');
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getNonceActionName(): string
+    {
+        return 'save_notice_action';
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getNonceFieldName(): string
+    {
+        return 'modestox_nonce';
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getUpdateLabel(): string
+    {
+        return __('Update', 'modestox-admin-sticky-notes');
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getSaveLabel(): string
+    {
+        return __('Save', 'modestox-admin-sticky-notes');
     }
 }

@@ -15,6 +15,8 @@ namespace Modestox\AdminStickyNotes\Infrastructure\Container;
 use Modestox\AdminStickyNotes\Infrastructure\Container;
 use Modestox\AdminStickyNotes\Notice\Repository\NoticeRepository;
 use Modestox\AdminStickyNotes\Group\Repository\GroupRepository;
+use Modestox\AdminStickyNotes\Infrastructure\Wordpress\WpUserDirectory;
+use Modestox\AdminStickyNotes\Shared\Helper\DateFactory;
 
 /**
  * Explicit configuration registry dedicated exclusively for Data Access Layer repositories.
@@ -26,14 +28,28 @@ final class RepositoryDefinitions implements ContainerDefinitionInterface
      */
     public static function register(Container $container): void
     {
+        // Shared Infrastructure Services
+        $container->set(
+            DateFactory::class,
+            static fn(): DateFactory => new DateFactory()
+        );
+
+        // Repositories Data Layers
         $container->set(
             NoticeRepository::class,
-            static fn(): NoticeRepository => new NoticeRepository()
+            static fn(Container $c): NoticeRepository => new NoticeRepository(
+                $c->get(DateFactory::class)
+            )
         );
 
         $container->set(
             GroupRepository::class,
             static fn(): GroupRepository => new GroupRepository()
+        );
+
+        $container->set(
+            WpUserDirectory::class,
+            static fn(): WpUserDirectory => new WpUserDirectory()
         );
     }
 }

@@ -17,6 +17,7 @@ if (!class_exists(\WP_List_Table::class)) {
 }
 
 use Modestox\AdminStickyNotes\Shared\Ui\Component\Column;
+use Modestox\AdminStickyNotes\Shared\Ui\Component\FilterBuilder;
 
 /**
  * Generic structural adapter bridge rendering datasets via standard WordPress table layouts.
@@ -227,10 +228,17 @@ final class GridRenderer extends \WP_List_Table
             return;
         }
 
-        $currentStatus = isset($_GET['filter_status']) ? sanitize_key($_GET['filter_status']) : '';
-        $currentPriority = isset($_GET['filter_priority']) ? sanitize_key($_GET['filter_priority']) : '';
-        $currentGroup = isset($_GET['filter_group']) ? sanitize_text_field($_GET['filter_group']) : '';
-        $searchQuery = isset($_GET['filter_search']) ? sanitize_text_field($_GET['filter_search']) : '';
+        $activeFilters = (new FilterBuilder())
+            ->key('filter_status', 'status')
+            ->key('filter_priority', 'priority')
+            ->integer('filter_group', 'group')
+            ->text('filter_search', 'search')
+            ->build();
+
+        $currentStatus = $activeFilters['status'] ?? '';
+        $currentPriority = $activeFilters['priority'] ?? '';
+        $currentGroup = isset($activeFilters['group']) ? (string)$activeFilters['group'] : '';
+        $searchQuery = $activeFilters['search'] ?? '';
 
         echo '<div class="alignleft actions" style="display: flex; gap: 6px; align-items: center; width: 100%; flex-wrap: wrap; margin-bottom: 10px;">';
 
