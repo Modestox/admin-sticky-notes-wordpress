@@ -37,6 +37,33 @@ final readonly class AdminSubscriber
         add_filter('modestox_register_admin_plugin_config', [$this, 'registerAdminPages']);
         add_action('admin_menu', [$this, 'registerAdminMenus']);
         add_action('admin_init', [$this, 'handleAdminMutations']);
+        add_action('admin_enqueue_scripts', [$this, 'enqueueAdminAssets']);
+    }
+
+    /**
+     * Enqueues module dedicated CSS layouts and vanilla Javascript dynamic rows components safely.
+     *
+     * @param string $hook Current administrative page context screen tracker.
+     * @return void
+     */
+    public function enqueueAdminAssets(string $hook): void
+    {
+        $assetsUrl = plugin_dir_url(dirname(__DIR__, 2));
+
+        wp_enqueue_style(
+            'modestox-admin-sticky-notes-css',
+            $assetsUrl . 'assets/css/admin.css',
+            [],
+            '1.0.0'
+        );
+
+        wp_enqueue_script(
+            'modestox-admin-sticky-notes-js',
+            $assetsUrl . 'assets/js/admin.js',
+            ['jquery'],
+            '1.0.0',
+            true
+        );
     }
 
     /**

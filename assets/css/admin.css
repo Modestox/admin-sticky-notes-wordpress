@@ -1,0 +1,52 @@
+/* Base structural layouts for all system badges */
+.modestox-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    line-height: 1;
+    text-align: center;
+    background-color: #f0f0f1;
+    color: #50575e;
+}
+
+/* --- Lifecycle Statuses Context Colors --- */
+.modestox-badge.mtx-badge-draft {
+    background-color: #f0f0f1;
+    color: #50575e;
+}
+
+.modestox-badge.mtx-badge-publish,
+.modestox-badge.mtx-badge-published {
+    background-color: #edfaef;
+    color: #135e26;
+}
+
+.modestox-badge.mtx-badge-archived {
+    background-color: #fcf0f0;
+    color: #b32d2e;
+}
+
+/* --- Urgency Priorities Context Colors --- */
+.modestox-badge.mtx-badge-low {
+    background-color: #f6f7f7;
+    color: #2c3338;
+    border: 1px solid #c3c4c7;
+}
+
+.modestox-badge.mtx-badge-normal {
+    background-color: #e5f5fa;
+    color: #006799;
+}
+
+.modestox-badge.mtx-badge-high {
+    background-color: #fff8e5;
+    color: #b85c00;
+}
+
+.modestox-badge.mtx-badge-critical {
+    background-color: #d63638;
+    color: #ffffff;
+}

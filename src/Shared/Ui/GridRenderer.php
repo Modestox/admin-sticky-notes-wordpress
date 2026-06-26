@@ -31,6 +31,13 @@ final class GridRenderer extends \WP_List_Table
     private array $columnsSchema;
 
     /**
+     * Fast-lookup indexed layout map.
+     *
+     * @var array<string, Column>
+     */
+    private array $indexedSchema = [];
+
+    /**
      * Total items found in database for current query boundaries.
      */
     private int $totalItemsCount;
@@ -86,6 +93,10 @@ final class GridRenderer extends \WP_List_Table
         $this->groupsLookup = $groupsLookup;
         $this->statusesLookup = $statusesLookup;
         $this->prioritiesLookup = $prioritiesLookup;
+
+        foreach ($columnsSchema as $column) {
+            $this->indexedSchema[$column->id] = $column;
+        }
     }
 
     /**
@@ -139,6 +150,32 @@ final class GridRenderer extends \WP_List_Table
     }
 
     /**
+     * Dedicated renderer for the primary 'title' column to support simple edit page links.
+     *
+     * @param array<string, mixed> $item Single item data row package.
+     * @return string
+     */
+    protected function column_title(array $item): string
+    {
+        $rowId = isset($item['id']) ? (int)$item['id'] : 0;
+        $titleValue = $item['title'] ?? '';
+
+        $editUrl = admin_url(
+            sprintf(
+                'admin.php?page=%s&action=edit&id=%d',
+                sanitize_key($_GET['page'] ?? ''),
+                $rowId,
+            ),
+        );
+
+        return sprintf(
+            '<a href="%s" class="row-title"><strong>%s</strong></a>',
+            esc_url($editUrl),
+            esc_html((string)$titleValue),
+        );
+    }
+
+    /**
      * Fallback macro interceptor parsing specific layout content generation cells dynamically.
      *
      * @param array<string, mixed> $item Single item data row package.
@@ -148,16 +185,34 @@ final class GridRenderer extends \WP_List_Table
     protected function column_default($item, $column_name): string
     {
         $value = $item[$column_name] ?? '';
+        $column = $this->indexedSchema[$column_name] ?? null;
 
-        if ($value instanceof \DateTimeImmutable) {
-            return esc_html($value->format('Y-m-d H:i'));
-        }
-
-        if (is_string($value) || is_numeric($value)) {
+        if ($column_name === 'actions') {
             return (string)$value;
         }
 
-        return '';
+        if (($column?->type === 'datetime') || ($value instanceof \DateTimeInterface)) {
+            if ($value instanceof \DateTimeInterface) {
+                $dateFormat = (string)get_option('date_format', 'Y-m-d');
+                $timeFormat = (string)get_option('time_format', 'H:i');
+
+                return esc_html($value->format("{$dateFormat} {$timeFormat}"));
+            }
+            return '';
+        }
+
+        if ($column === null) {
+            return esc_html(is_object($value) ? get_class($value) : (string)$value);
+        }
+
+        return match ($column->type) {
+            'badge' => sprintf(
+                '<span class="modestox-badge mtx-badge-%s">%s</span>',
+                esc_attr((string)$value),
+                esc_html((string)$value),
+            ),
+            default => esc_html((string)$value),
+        };
     }
 
     /**
