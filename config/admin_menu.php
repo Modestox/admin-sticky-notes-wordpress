@@ -36,5 +36,21 @@ return [
             'action'     => 'new',
             'controller' => \Modestox\AdminStickyNotes\Notice\Admin\Controller::class,
         ],
+        [
+            'page_title' => __('Admin Sticky Note Groups', 'modestox-admin-sticky-notes'),
+            'menu_title' => __('All Groups', 'modestox-admin-sticky-notes'),
+            'capability' => 'manage_options',
+            'menu_slug'  => 'modestox-sticky-groups',
+            'action'     => 'list',
+            'controller' => \Modestox\AdminStickyNotes\Group\Admin\Controller::class,
+        ],
+        [
+            'page_title' => __('Create New Target Group', 'modestox-admin-sticky-notes'),
+            'menu_title' => __('Add New Group', 'modestox-admin-sticky-notes'),
+            'capability' => 'manage_options',
+            'menu_slug'  => 'modestox-sticky-groups-new',
+            'action'     => 'new',
+            'controller' => \Modestox\AdminStickyNotes\Group\Admin\Controller::class,
+        ],
     ],
 ];

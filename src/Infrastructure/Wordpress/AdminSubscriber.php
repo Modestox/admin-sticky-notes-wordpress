@@ -90,19 +90,14 @@ final readonly class AdminSubscriber
      */
     public function handleAdminMutations(): void
     {
-        $currentPage = $_GET['page'] ?? '';
-        if ($currentPage !== 'modestox-admin-sticky-notes' && $currentPage !== 'modestox-notices-new') {
-            return;
-        }
+        $currentPage = sanitize_key($_GET['page'] ?? '');
+        $action = sanitize_key($_GET['action'] ?? '');
 
-        $action = isset($_GET['action']) ? (string)$_GET['action'] : '';
         if ($action !== 'save' && $action !== 'delete') {
             return;
         }
 
-        $schema = $this->menuRegistry->getAdminMenu();
-        $controllerClass = $schema['parent']['controller'] ?? null;
-
+        $controllerClass = $this->resolveControllerForPage($currentPage);
         if ($controllerClass !== null) {
             \Modestox\AdminStickyNotes\modestoxStickyNotes()
                 ->getContainer()
@@ -135,7 +130,6 @@ final readonly class AdminSubscriber
             $parent['menu_slug'],
             function () use ($parent): void {
                 $action = isset($_GET['action']) ? (string)$_GET['action'] : 'list';
-
                 if ($action === 'save' || $action === 'delete') {
                     return;
                 }
@@ -158,7 +152,6 @@ final readonly class AdminSubscriber
 
             $callback = $isDuplicateOfParent ? '__return_false' : function () use ($submenu): void {
                 $action = isset($_GET['action']) ? (string)$_GET['action'] : ($submenu['action'] ?? 'list');
-
                 if ($action === 'save' || $action === 'delete') {
                     return;
                 }
@@ -181,5 +174,27 @@ final readonly class AdminSubscriber
                 $callback,
             );
         }
+    }
+
+    /**
+     * Lookups the correct action controller matching the current administrative request page slug.
+     *
+     * @return class-string|null
+     */
+    private function resolveControllerForPage(string $pageSlug): ?string
+    {
+        $schema = $this->menuRegistry->getAdminMenu();
+
+        if (($schema['parent']['menu_slug'] ?? '') === $pageSlug) {
+            return $schema['parent']['controller'] ?? null;
+        }
+
+        foreach ($schema['submenus'] ?? [] as $submenu) {
+            if (($submenu['menu_slug'] ?? '') === $pageSlug) {
+                return $submenu['controller'] ?? null;
+            }
+        }
+
+        return null;
     }
 }

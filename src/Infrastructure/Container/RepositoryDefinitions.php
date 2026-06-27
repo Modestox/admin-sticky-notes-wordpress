@@ -44,7 +44,9 @@ final class RepositoryDefinitions implements ContainerDefinitionInterface
 
         $container->set(
             GroupRepository::class,
-            static fn(): GroupRepository => new GroupRepository()
+            static fn(Container $c): GroupRepository => new GroupRepository(
+                $c->get(DateFactory::class)
+            )
         );
 
         $container->set(
