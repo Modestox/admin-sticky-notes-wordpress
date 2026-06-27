@@ -21,10 +21,15 @@ use Modestox\AdminStickyNotes\Notice\Admin\Controller as NoticeController;
 use Modestox\AdminStickyNotes\Group\Repository\GroupRepository;
 use Modestox\AdminStickyNotes\Infrastructure\Wordpress\WpUserDirectory;
 use Modestox\AdminStickyNotes\Shared\Helper\DateFactory;
+
 final class ContainerRegistration implements ContainerRegistrationInterface
 {
     public static function register(Container $container): void
     {
+        $container->set(NoticeRepository::class, static fn(Container $c) => new NoticeRepository(
+            $c->get(DateFactory::class),
+        ));
+
         $container->set(NoticeService::class, static fn(Container $c) => new NoticeService(
             $c->get(NoticeRepository::class),
             $c->get(DateFactory::class),
@@ -58,10 +63,5 @@ final class ContainerRegistration implements ContainerRegistrationInterface
         $container->set(DeleteAction::class, static fn(Container $c) => new DeleteAction(
             $c->get(NoticeService::class),
         ));
-
-        $container->set(NoticeRepository::class, static fn(Container $c) => new NoticeRepository(
-            $c->get(DateFactory::class)
-        ));
-
     }
 }
