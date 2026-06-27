@@ -12,9 +12,7 @@ declare(strict_types=1);
 
 namespace Modestox\AdminStickyNotes\Infrastructure;
 
-use Modestox\AdminStickyNotes\Infrastructure\Container\RepositoryDefinitions;
 use Modestox\AdminStickyNotes\Infrastructure\Container\ControllerDefinitions;
-use Modestox\AdminStickyNotes\Infrastructure\Container\ServiceDefinitions;
 
 /**
  * Orchestrator bootstrapper dispatching specific isolated definitions blocks configuration across the container.
@@ -29,8 +27,6 @@ final class ContainerConfigurator
      */
     public static function configure(Container $container): void
     {
-        RepositoryDefinitions::register($container);
         ControllerDefinitions::register($container);
-        ServiceDefinitions::register($container);
     }
 }

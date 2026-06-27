@@ -14,16 +14,7 @@ namespace Modestox\AdminStickyNotes\Infrastructure\Container;
 
 use Modestox\AdminStickyNotes\Infrastructure\Container;
 
-/**
- * Standard structural contract for highly isolated layer component dependency binders.
- */
-interface ContainerDefinitionInterface
+interface ContainerRegistrationInterface
 {
-    /**
-     * Registers specific layer isolated dependency compounds inside the environment container wrapper.
-     *
-     * @param Container $container Central framework service container instance.
-     * @return void
-     */
     public static function register(Container $container): void;
 }
