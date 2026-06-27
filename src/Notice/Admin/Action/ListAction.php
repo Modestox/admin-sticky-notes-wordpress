@@ -76,12 +76,13 @@ final readonly class ListAction extends AbstractListAction
     public function mapOrderByField(string $orderBy): string
     {
         return match ($orderBy) {
-            'title'     => 'title',
-            'status'    => 'status',
-            'priority'  => 'priority',
-            'startDate' => 'start_date',
-            'endDate'   => 'end_date',
-            default     => 'id',
+            'id',
+            'title',
+            'status',
+            'priority',
+            'start_date',
+            'end_date' => $orderBy,
+            default    => 'id',
         };
     }
 
@@ -139,15 +140,15 @@ final readonly class ListAction extends AbstractListAction
             );
 
             return [
-                'id'         => $notice->id,
-                'title'      => $notice->title,
-                'groupName'  => $groupName,
-                'targetUser' => $targetUserText,
-                'status'     => $notice->status,
-                'priority'   => $notice->priority,
-                'startDate'  => $notice->startDate,
-                'endDate'    => $notice->endDate,
-                'actions'    => $actionsHtml,
+                'id'          => $notice->id,
+                'title'       => $notice->title,
+                'group_name'  => $groupName,
+                'target_user' => $targetUserText,
+                'status'      => $notice->status,
+                'priority'    => $notice->priority,
+                'start_date'  => $notice->startDate,
+                'end_date'    => $notice->endDate,
+                'actions'     => $actionsHtml,
             ];
         }, $entities);
     }
@@ -155,16 +156,91 @@ final readonly class ListAction extends AbstractListAction
     /**
      * @inheritDoc
      */
-    public function createGridRenderer(AbstractGrid $gridDefinition, array $gridData, int $totalItems, int $perPage): GridRenderer
+    public function createGridRenderer(
+        AbstractGrid $gridDefinition,
+        array $gridData,
+        int $totalItems,
+        int $perPage,
+        string $orderBy,
+        string $direction
+    ): GridRenderer
     {
+        $groupsLookup = $this->groupRepository->getLookupPairs();
+        $statusesLookup = Form::getStatusPairs();
+        $prioritiesLookup = Form::getPriorityPairs();
+
+        $filterCallback = static function () use ($groupsLookup, $statusesLookup, $prioritiesLookup): void {
+            $activeFilters = (new FilterBuilder())
+                ->key('filter_status', 'status')
+                ->key('filter_priority', 'priority')
+                ->integer('filter_group', 'group')
+                ->text('filter_search', 'search')
+                ->build();
+
+            $currentStatus = $activeFilters['status'] ?? '';
+            $currentPriority = $activeFilters['priority'] ?? '';
+            $currentGroup = isset($activeFilters['group']) ? (string)$activeFilters['group'] : '';
+            $searchQuery = $activeFilters['search'] ?? '';
+
+            echo '<div class="alignleft actions" style="display: flex; gap: 6px; align-items: center; width: 100%; flex-wrap: wrap; margin-bottom: 10px;">';
+
+            echo sprintf(
+                '<input type="search" name="filter_search" value="%s" placeholder="%s" style="height: 30px; margin: 0;" />',
+                esc_attr($searchQuery),
+                esc_attr__('Search notices...', 'modestox-admin-sticky-notes'),
+            );
+
+            echo '<select name="filter_group" id="filter_group" style="margin: 0;">';
+            echo sprintf('<option value="">%s</option>', esc_html__('All Target Groups', 'modestox-admin-sticky-notes'));
+            echo sprintf(
+                '<option value="0" %s>%s</option>',
+                selected($currentGroup, '0', false),
+                esc_html__('— All Groups —', 'modestox-admin-sticky-notes'),
+            );
+            foreach ($groupsLookup as $gId => $gName) {
+                if ($gId === 0) {
+                    continue;
+                }
+                echo sprintf('<option value="%d" %s>%s</option>', $gId, selected($currentGroup, (string)$gId, false), esc_html($gName));
+            }
+            echo '</select>';
+
+            echo '<select name="filter_status" id="filter_status" style="margin: 0;">';
+            echo sprintf('<option value="">%s</option>', esc_html__('All Statuses', 'modestox-admin-sticky-notes'));
+            foreach ($statusesLookup as $val => $label) {
+                echo sprintf('<option value="%s" %s>%s</option>', esc_attr($val), selected($currentStatus, $val, false), esc_html($label));
+            }
+            echo '</select>';
+
+            echo '<select name="filter_priority" id="filter_priority" style="margin: 0;">';
+            echo sprintf('<option value="">%s</option>', esc_html__('All Priorities', 'modestox-admin-sticky-notes'));
+            foreach ($prioritiesLookup as $val => $label) {
+                echo sprintf('<option value="%s" %s>%s</option>', esc_attr($val), selected($currentPriority, $val, false), esc_html($label));
+            }
+            echo '</select>';
+
+            submit_button(__('Filter', 'modestox-admin-sticky-notes'), 'button', 'filter_action', false, ['style' => 'margin: 0;']);
+
+            if (!empty($currentStatus) || !empty($currentPriority) || $currentGroup !== '' || !empty($searchQuery)) {
+                $resetUrl = admin_url(sprintf('admin.php?page=%s', sanitize_key($_GET['page'] ?? '')));
+                echo sprintf(
+                    '<a href="%s" class="button button-secondary" style="margin: 0 0 0 4px; display: inline-flex; align-items: center; height: 30px;">%s</a>',
+                    esc_url($resetUrl),
+                    esc_html__('Reset', 'modestox-admin-sticky-notes'),
+                );
+            }
+
+            echo '</div>';
+        };
+
         return new GridRenderer(
             $gridDefinition->getColumns(),
             $gridData,
             $totalItems,
             $perPage,
-            $this->groupRepository->getLookupPairs(),
-            Form::getStatusPairs(),
-            Form::getPriorityPairs(),
+            $orderBy,
+            $direction,
+            $filterCallback
         );
     }
 }

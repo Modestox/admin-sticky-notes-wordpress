@@ -97,7 +97,7 @@ final readonly class GroupRepository extends AbstractRepository
     }
 
     /**
-     * Fetches all registered groups mapped as an associative ID to Title registry.
+     * Cultivates all registered groups mapped as an associative ID to Title registry.
      *
      * @return array<int, string>
      */

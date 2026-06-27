@@ -37,9 +37,9 @@ final readonly class Grid extends AbstractGrid
             new Column('id', __('ID', 'modestox-admin-sticky-notes'), true),
             new Column('title', __('Group Title', 'modestox-admin-sticky-notes'), true),
             new Column('slug', __('URL Slug', 'modestox-admin-sticky-notes'), true),
-            new Column('allowedRoles', __('Allowed Roles', 'modestox-admin-sticky-notes')),
-            new Column('sortOrder', __('Sort Order', 'modestox-admin-sticky-notes'), true, 'number'),
-            new Column('createdAt', __('Created At', 'modestox-admin-sticky-notes'), true, 'datetime'),
+            new Column('allowed_roles', __('Allowed Roles', 'modestox-admin-sticky-notes')),
+            new Column('sort_order', __('Sort Order', 'modestox-admin-sticky-notes'), true, 'number'),
+            new Column('created_at', __('Created At', 'modestox-admin-sticky-notes'), true, 'datetime'),
             new Column('actions', __('Actions', 'modestox-admin-sticky-notes')),
         ];
     }

@@ -36,12 +36,12 @@ final readonly class Grid extends AbstractGrid
         return [
             new Column('id', __('ID', 'modestox-admin-sticky-notes'), true),
             new Column('title', __('Title', 'modestox-admin-sticky-notes'), true),
-            new Column('groupName', __('Target Group', 'modestox-admin-sticky-notes')),
-            new Column('targetUser', __('Target User', 'modestox-admin-sticky-notes')),
+            new Column('group_name', __('Target Group', 'modestox-admin-sticky-notes')),
+            new Column('target_user', __('Target User', 'modestox-admin-sticky-notes')),
             new Column('status', __('Status', 'modestox-admin-sticky-notes'), true, 'badge'),
             new Column('priority', __('Priority', 'modestox-admin-sticky-notes'), true, 'badge'),
-            new Column('startDate', __('Start Date', 'modestox-admin-sticky-notes'), true, 'datetime'),
-            new Column('endDate', __('End Date', 'modestox-admin-sticky-notes'), true, 'datetime'),
+            new Column('start_date', __('Start Date', 'modestox-admin-sticky-notes'), true, 'datetime'),
+            new Column('end_date', __('End Date', 'modestox-admin-sticky-notes'), true, 'datetime'),
             new Column('actions', __('Actions', 'modestox-admin-sticky-notes')),
         ];
     }

@@ -17,69 +17,28 @@ if (!class_exists(\WP_List_Table::class)) {
 }
 
 use Modestox\AdminStickyNotes\Shared\Ui\Component\Column;
-use Modestox\AdminStickyNotes\Shared\Ui\Component\FilterBuilder;
 
 /**
  * Generic structural adapter bridge rendering datasets via standard WordPress table layouts.
  */
 final class GridRenderer extends \WP_List_Table
 {
-    /**
-     * Active structural table layout column blueprints specification map.
-     *
-     * @var array<int, Column>
-     */
     private array $columnsSchema;
-
-    /**
-     * Fast-lookup indexed layout map.
-     *
-     * @var array<string, Column>
-     */
     private array $indexedSchema = [];
-
-    /**
-     * Total items found in database for current query boundaries.
-     */
     private int $totalItemsCount;
-
-    /**
-     * Maximum allowed records shown simultaneously inside single slice view.
-     */
     private int $perPageLimit;
+    private ?\Closure $filterCallback;
+    private string $currentOrderby;
+    private string $currentOrder;
 
-    /**
-     * Map of available groups for filtering context lookup.
-     * @var array<int, string>
-     */
-    private array $groupsLookup;
-
-    /**
-     * @var array<string, string>
-     */
-    private array $statusesLookup;
-
-    /**
-     * @var array<string, string>
-     */
-    private array $prioritiesLookup;
-
-    /**
-     * Runtime Constructor mapping entity collections configuration layers.
-     *
-     * @param array<int, Column> $columnsSchema Blueprint specification maps layout setup.
-     * @param array<int, array<string, mixed>> $items Renderable associative grid collection database stack data.
-     * @param int $totalItemsCount Total count for calculated pagination limits.
-     * @param int $perPageLimit Items count slice constraint per view page.
-     */
     public function __construct(
         array $columnsSchema,
         array $items = [],
         int $totalItemsCount = 0,
         int $perPageLimit = 10,
-        array $groupsLookup = [],
-        array $statusesLookup = [],
-        array $prioritiesLookup = [],
+        string $currentOrderby = '',
+        string $currentOrder = 'desc',
+        ?\Closure $filterCallback = null,
     ) {
         parent::__construct([
             'singular' => 'ui_item',
@@ -91,27 +50,18 @@ final class GridRenderer extends \WP_List_Table
         $this->items = $items;
         $this->totalItemsCount = $totalItemsCount;
         $this->perPageLimit = $perPageLimit;
-        $this->groupsLookup = $groupsLookup;
-        $this->statusesLookup = $statusesLookup;
-        $this->prioritiesLookup = $prioritiesLookup;
+        $this->currentOrderby = $currentOrderby;
+        $this->currentOrder = $currentOrder;
+        $this->filterCallback = $filterCallback;
 
         foreach ($columnsSchema as $column) {
             $this->indexedSchema[$column->id] = $column;
         }
     }
 
-    /**
-     * Obligatory WordPress core abstraction contract override.
-     *
-     * @return void
-     */
     public function prepare_items(): void
     {
-        $this->_column_headers = [
-            $this->get_columns(),
-            [],
-            $this->get_sortable_columns(),
-        ];
+        $this->_column_headers = [$this->get_columns(), [], $this->get_sortable_columns()];
 
         $this->set_pagination_args([
             'total_items' => $this->totalItemsCount,
@@ -120,11 +70,20 @@ final class GridRenderer extends \WP_List_Table
         ]);
     }
 
-    /**
-     * Returns standard structural list array maps representing columns configuration keys.
-     *
-     * @return array<string, string>
-     */
+    public function get_pagenum_link($pagenum = 1, $escape = true): string
+    {
+        $url = parent::get_pagenum_link($pagenum, false);
+
+        if (!empty($this->currentOrderby)) {
+            $url = add_query_arg([
+                'orderby' => $this->currentOrderby,
+                'order'   => $this->currentOrder,
+            ], $url);
+        }
+
+        return $escape ? esc_url($url) : $url;
+    }
+
     public function get_columns(): array
     {
         $columns = [];
@@ -134,55 +93,25 @@ final class GridRenderer extends \WP_List_Table
         return $columns;
     }
 
-    /**
-     * Defines sortable parameters metadata context schema.
-     *
-     * @return array<string, array{0: string, 1: bool}>
-     */
     protected function get_sortable_columns(): array
     {
         $sortable = [];
         foreach ($this->columnsSchema as $column) {
             if ($column->isSortable) {
-                $sortable[$column->id] = [$column->id, false];
+                $isSorted = ($this->currentOrderby === $column->id);
+                $sortable[$column->id] = [$column->id, $isSorted];
             }
         }
         return $sortable;
     }
 
-    /**
-     * Dedicated renderer for the primary 'title' column to support simple edit page links.
-     *
-     * @param array<string, mixed> $item Single item data row package.
-     * @return string
-     */
     protected function column_title(array $item): string
     {
         $rowId = isset($item['id']) ? (int)$item['id'] : 0;
-        $titleValue = $item['title'] ?? '';
-
-        $editUrl = admin_url(
-            sprintf(
-                'admin.php?page=%s&action=edit&id=%d',
-                sanitize_key($_GET['page'] ?? ''),
-                $rowId,
-            ),
-        );
-
-        return sprintf(
-            '<a href="%s" class="row-title"><strong>%s</strong></a>',
-            esc_url($editUrl),
-            esc_html((string)$titleValue),
-        );
+        $editUrl = admin_url(sprintf('admin.php?page=%s&action=edit&id=%d', sanitize_key($_GET['page'] ?? ''), $rowId));
+        return sprintf('<a href="%s" class="row-title"><strong>%s</strong></a>', esc_url($editUrl), esc_html((string)($item['title'] ?? '')));
     }
 
-    /**
-     * Fallback macro interceptor parsing specific layout content generation cells dynamically.
-     *
-     * @param array<string, mixed> $item Single item data row package.
-     * @param string $column_name Raw column identifier string key.
-     * @return string
-     */
     protected function column_default($item, $column_name): string
     {
         $value = $item[$column_name] ?? '';
@@ -191,113 +120,19 @@ final class GridRenderer extends \WP_List_Table
         if ($column_name === 'actions') {
             return (string)$value;
         }
-
-        if (($column?->type === 'datetime') || ($value instanceof \DateTimeInterface)) {
-            if ($value instanceof \DateTimeInterface) {
-                $dateFormat = (string)get_option('date_format', 'Y-m-d');
-                $timeFormat = (string)get_option('time_format', 'H:i');
-
-                return esc_html($value->format("{$dateFormat} {$timeFormat}"));
-            }
-            return '';
+        if ($column?->type === 'datetime' && $value instanceof \DateTimeInterface) {
+            return esc_html($value->format((string)get_option('date_format') . ' ' . (string)get_option('time_format')));
         }
-
-        if ($column === null) {
-            return esc_html(is_object($value) ? get_class($value) : (string)$value);
+        if ($column?->type === 'badge') {
+            return sprintf('<span class="modestox-badge mtx-badge-%s">%s</span>', esc_attr((string)$value), esc_html((string)$value));
         }
-
-        return match ($column->type) {
-            'badge' => sprintf(
-                '<span class="modestox-badge mtx-badge-%s">%s</span>',
-                esc_attr((string)$value),
-                esc_html((string)$value),
-            ),
-            default => esc_html((string)$value),
-        };
+        return esc_html((string)$value);
     }
 
-    /**
-     * Renders extra filtering controls above and below the data table layout.
-     *
-     * @param string $which Location context indicator (top|bottom).
-     * @return void
-     */
     protected function extra_tablenav($which): void
     {
-        if ($which !== 'top') {
-            return;
+        if ($which === 'top' && $this->filterCallback !== null) {
+            ($this->filterCallback)();
         }
-
-        $activeFilters = (new FilterBuilder())
-            ->key('filter_status', 'status')
-            ->key('filter_priority', 'priority')
-            ->integer('filter_group', 'group')
-            ->text('filter_search', 'search')
-            ->build();
-
-        $currentStatus = $activeFilters['status'] ?? '';
-        $currentPriority = $activeFilters['priority'] ?? '';
-        $currentGroup = isset($activeFilters['group']) ? (string)$activeFilters['group'] : '';
-        $searchQuery = $activeFilters['search'] ?? '';
-
-        echo '<div class="alignleft actions" style="display: flex; gap: 6px; align-items: center; width: 100%; flex-wrap: wrap; margin-bottom: 10px;">';
-
-        echo sprintf(
-            '<input type="search" name="filter_search" value="%s" placeholder="%s" style="height: 30px; margin: 0;" />',
-            esc_attr($searchQuery),
-            esc_attr__('Search notices...', 'modestox-admin-sticky-notes'),
-        );
-
-        echo '<select name="filter_group" id="filter_group" style="margin: 0;">';
-        echo sprintf('<option value="">%s</option>', esc_html__('All Target Groups', 'modestox-admin-sticky-notes'));
-        echo sprintf(
-            '<option value="0" %s>%s</option>',
-            selected($currentGroup, '0', false),
-            esc_html__('— All Groups —', 'modestox-admin-sticky-notes'),
-        );
-        foreach ($this->groupsLookup as $gId => $gName) {
-            if ($gId === 0) {
-                continue;
-            }
-            echo sprintf(
-                '<option value="%d" %s>%s</option>',
-                $gId,
-                selected($currentGroup, (string)$gId, false),
-                esc_html($gName),
-            );
-        }
-        echo '</select>';
-
-        if (!empty($this->statusesLookup)) {
-            echo '<select name="filter_status" id="filter_status" style="margin: 0;">';
-            echo sprintf('<option value="">%s</option>', esc_html__('All Statuses', 'modestox-admin-sticky-notes'));
-            foreach ($this->statusesLookup as $val => $label) {
-                echo sprintf('<option value="%s" %s>%s</option>', esc_attr($val), selected($currentStatus, $val, false), esc_html($label));
-            }
-            echo '</select>';
-        }
-
-        if (!empty($this->prioritiesLookup)) {
-            echo '<select name="filter_priority" id="filter_priority" style="margin: 0;">';
-            echo sprintf('<option value="">%s</option>', esc_html__('All Priorities', 'modestox-admin-sticky-notes'));
-            foreach ($this->prioritiesLookup as $val => $label) {
-                echo sprintf('<option value="%s" %s>%s</option>', esc_attr($val), selected($currentPriority, $val, false), esc_html($label));
-            }
-            echo '</select>';
-        }
-
-        submit_button(__('Filter', 'modestox-admin-sticky-notes'), 'button', 'filter_action', false, ['style' => 'margin: 0;']);
-
-        if (!empty($currentStatus) || !empty($currentPriority) || $currentGroup !== '' || !empty($searchQuery)) {
-            $resetUrl = admin_url(sprintf('admin.php?page=%s', sanitize_key($_GET['page'] ?? '')));
-
-            echo sprintf(
-                '<a href="%s" class="button button-secondary" style="margin: 0 0 0 4px; display: inline-flex; align-items: center; height: 30px;">%s</a>',
-                esc_url($resetUrl),
-                esc_html__('Reset', 'modestox-admin-sticky-notes'),
-            );
-        }
-
-        echo '</div>';
     }
 }
