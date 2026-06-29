@@ -11,13 +11,13 @@ declare(strict_types=1);
 
 return [
     'parent'   => [
-        'page_title' => __('Admin Sticky Notices', 'modestox-admin-sticky-notes'),
-        'menu_title' => __('Admin Sticky Notices', 'modestox-admin-sticky-notes'),
+        'page_title' => __('Admin Sticky Dashboard', 'modestox-admin-sticky-notes'),
+        'menu_title' => __('Admin Sticky Dashboard', 'modestox-admin-sticky-notes'),
         'capability' => 'manage_options',
-        'menu_slug'  => 'modestox-admin-sticky-notes',
+        'menu_slug'  => 'modestox-admin-stick-dashboard',
         'icon_url'   => 'dashicons-admin-post',
         'position'   => 30,
-        'controller' => \Modestox\AdminStickyNotes\Notice\Admin\Controller::class,
+        'controller' => \Modestox\AdminStickyNotes\Dashboard\Admin\Controller::class,
     ],
     'submenus' => [
         [

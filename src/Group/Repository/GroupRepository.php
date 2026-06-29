@@ -68,6 +68,27 @@ final readonly class GroupRepository extends AbstractRepository
     }
 
     /**
+     * Fetches absolutely all groups for the dashboard without limits or filters.
+     *
+     * @return array<int, Group>
+     */
+    public function findVisible(): array
+    {
+        global $wpdb;
+
+        $rows = $wpdb->get_results(
+            "SELECT * FROM {$this->tableName} ORDER BY sort_order ASC",
+            ARRAY_A,
+        );
+
+        if (!is_array($rows)) {
+            return [];
+        }
+
+        return array_map([$this, 'hydrate'], $rows);
+    }
+
+    /**
      * Returns the total count of filtered rows inside the database table.
      */
     public function countAll(array $filters = []): int
@@ -107,7 +128,7 @@ final readonly class GroupRepository extends AbstractRepository
 
         $rows = $wpdb->get_results(
             "SELECT id, title FROM {$this->tableName} ORDER BY sort_order ASC, title ASC",
-            ARRAY_A
+            ARRAY_A,
         );
 
         if (!is_array($rows)) {

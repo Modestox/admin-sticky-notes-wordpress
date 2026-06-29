@@ -68,12 +68,34 @@ final readonly class NoticeRepository extends AbstractRepository
             $query->likeSerializedId('group_id', $groupFilter);
         }
 
-        $query->generalSearch(['title', 'content'], $filters['search'] ?? null)
+        $query
+            ->generalSearch(['title', 'content'], $filters['search'] ?? null)
             ->order($orderBy, $direction, $allowedColumns)
             ->limit($limit)
             ->offset($offset);
 
         $rows = $wpdb->get_results($query->getSelectSql(), ARRAY_A);
+
+        if (!is_array($rows)) {
+            return [];
+        }
+
+        return array_map([$this, 'hydrate'], $rows);
+    }
+
+    /**
+     * Fetches absolutely all notices for the dashboard without limits or filters.
+     *
+     * @return array<int, Notice>
+     */
+    public function findVisible(): array
+    {
+        global $wpdb;
+
+        $rows = $wpdb->get_results(
+            "SELECT * FROM {$this->tableName} WHERE status != 'archived' ORDER BY id DESC",
+            ARRAY_A
+        );
 
         if (!is_array($rows)) {
             return [];
